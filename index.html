@@ -186,39 +186,47 @@ function findDate(t){
 }
 function cleanName(n){return n.replace(/[^A-Za-z0-9&'.,\- ]/g,' ').replace(/\s+/g,' ').trim()}
 function parseTicket(t){
- const L=t.split(/\n/).map(s=>s.replace(/\s+/g,' ').trim()).filter(Boolean),r={};
+ const r={};
  r.date=findDate(t);r.dna=!r.date;
+ // mark every Vendor/Store Number label so a name merged onto the same OCR line is kept
+ const T=t.replace(/(vendor|store)\s*(number|no\.?|#)\s*[:;.]?/gi,'\n\u00a7\n');
+ const L=T.split(/\n/).map(s=>s.replace(/\s+/g,' ').trim()).filter(Boolean);
 
  // price: Subtotal only, never the Total line
  const amt=s=>{const m=[...s.matchAll(/(\d{1,5}(?:,\d{3})*\.\d{2})/g)];return m.length?m[m.length-1][1].replace(/,/g,''):''};
  const si=L.findIndex(l=>/sub\s*-?\s*total/i.test(l));
  if(si>=0)r.price=amt(L[si])||amt(L[si+1]||'');
 
- // name + address: the lines under Vendor/Store Number
  const stop=l=>/office|home\s*:|cell\s*:|amount due|\(\d{3}\)\s*\d{3}|must be checked|paid cash|credit card/i.test(l);
- const label=l=>/(store|vendor)\s*(number|no\b|#)|invoice|^date/i.test(l);
+ const junk=l=>l==='\u00a7'||!/[A-Za-z0-9]{2}/.test(l)||/^(invoice|date)\b/i.test(l);
  const street=l=>/^\d{1,6}\s+\S/.test(l)&&!/\$/.test(l)&&!/\(\d{3}\)/.test(l);
- let bi=-1;L.forEach((l,i)=>{if(/(store|vendor)\s*(number|no\b|#)/i.test(l))bi=i});
+ let bi=-1;L.forEach((l,i)=>{if(l==='\u00a7')bi=i});
  let block=[];
- if(bi>=0){for(let i=bi+1;i<L.length&&block.length<5;i++){if(stop(L[i]))break;if(label(L[i])||/^[\d\s.:-]{0,6}$/.test(L[i]))continue;block.push(L[i])}}
- else{const k=L.findIndex(street);if(k>0){block.push(L[k-1]);for(let i=k;i<L.length&&block.length<4;i++){if(stop(L[i]))break;block.push(L[i])}}}
- if(block.length){
-  const k=block.findIndex(street);
-  let nameLine=k>0?block.slice(0,k).join(' '):block[0];
-  const addrLines=k>=0?block.slice(k):block.slice(1);
-  let city='';
-  const cl=addrLines.find(l=>/[A-Za-z]/.test(l)&&/\b[A-Z]{2}\b\s*\d{5}/.test(l));
-  if(cl)city=cl.replace(/,?\s*\b[A-Z]{2}\b\s*\d{5}(-\d{4})?\s*$/,'').trim();
-  let addr=addrLines.map(l=>l.replace(/\s*,?\s*\b([A-Z]{2})\b\s+(\d{5}(-\d{4})?)\s*$/,', $1 $2').replace(/^,\s*/,'')).join(', ');
-  const hay=addr.toLowerCase();
-  // drop anything in the name that repeats in the address (city, street bits)
-  let parts=nameLine.split(/\s+[-\u2013\u2014]\s+/).map(cleanName).filter(Boolean);
-  if(parts.length>1)parts=[parts[0],...parts.slice(1).filter(p=>!hay.includes(p.toLowerCase()))];
-  let name=parts.join(' - ');
-  if(city&&name.toLowerCase().endsWith(city.toLowerCase())&&name.length>city.length)name=name.slice(0,name.length-city.length).replace(/[\s-]+$/,'');
-  if(name)r.name=name;
-  if(addr)r.addr=addr;
- }
+ if(bi>=0){for(let i=bi+1;i<L.length&&block.length<8;i++){if(stop(L[i]))break;if(junk(L[i]))continue;block.push(L[i])}}
+ else{const k=L.findIndex(street);if(k>0){block.push(L[k-1]);for(let i=k;i<L.length&&block.length<6;i++){if(stop(L[i]))break;block.push(L[i])}}}
+ if(!block.length)return r;
+
+ const k=block.findIndex(street);
+ const nameLine=k>0?block.slice(0,k).join(' '):block[0];
+ const rest=k>=0?block.slice(k):block.slice(1);
+ // address = street + city. State and zip are removed.
+ const streetLine=k>=0?rest[0]:'';
+ let city=rest.slice(k>=0?1:0).join(' ')
+  .replace(/\b[A-Za-z]{2}\b(?=[\s,]*\d{5}(-\d{4})?\b)/g,'')   // state right before a zip
+  .replace(/\b\d{5}(-\d{4})?\b/g,'')                          // zip
+  .replace(/\b(FL|Fla|Florida)\b\.?/gi,'')                    // loose state
+  .replace(/[,\s]+/g,' ').trim();
+ if(!/[A-Za-z]{3}/.test(city))city='';
+ const addr=[streetLine,city].filter(Boolean).join(', ');
+
+ // name: split on a dash, drop any piece that repeats in the address
+ const hay=addr.toLowerCase();
+ let parts=nameLine.split(/\s+[-\u2013\u2014~_]+\s+|\s+[-\u2013\u2014]\s*$/).map(cleanName).filter(Boolean);
+ if(parts.length>1)parts=[parts[0],...parts.slice(1).filter(x=>!hay.includes(x.toLowerCase()))];
+ let name=parts.join(' - ');
+ if(city&&name.length>city.length&&name.toLowerCase().endsWith(city.toLowerCase()))name=name.slice(0,name.length-city.length).replace(/[\s-]+$/,'');
+ if(name)r.name=name;
+ if(addr)r.addr=addr;
  return r;
 }
 $('files').onchange=async e=>{
