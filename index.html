@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -6,219 +6,240 @@
 <meta name="theme-color" content="#18211f">
 <title>Window Job Tracker</title>
 <style>
-:root{color-scheme:light;--ink:#18211f;--muted:#66716d;--line:#dce3df;--paper:#fff;--bg:#f3f6f4;--green:#246b50;--soft:#e7f1eb}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-header{background:var(--ink);color:white;padding:22px 18px 18px}header h1{font-size:23px;margin:0 0 4px}header p{margin:0;color:#d2ded8;font-size:14px}
-main{max-width:850px;margin:0 auto;padding:16px;display:grid;gap:14px}.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 2px 8px #18211f08}
-h2{font-size:18px;margin:0 0 10px}h3{font-size:15px;margin:0 0 8px}.muted,.hint{color:var(--muted);font-size:13px}.hint{margin:8px 0 0}
-button,.button{border:0;border-radius:10px;background:var(--green);color:white;padding:11px 14px;font:600 14px inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px}
-button.secondary,.button.secondary{background:#edf1ee;color:var(--ink);border:1px solid var(--line)}button.danger{background:#fff0ef;color:#9b2f29;border:1px solid #f1d0cd}button:disabled{opacity:.5;cursor:wait}
-.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.fieldgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-label{display:block;font-size:12px;font-weight:700;color:#52605a;margin-bottom:4px}input,select,textarea{width:100%;min-width:0;border:1px solid #cfd8d2;border-radius:9px;padding:10px;background:white;color:var(--ink);font:inherit;font-size:15px}input[type=file]{padding:8px;font-size:13px}
-.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.metric{background:var(--soft);border-radius:12px;padding:12px}.metric span{display:block;font-size:12px;color:#4b6558}.metric strong{display:block;font-size:21px;margin-top:3px;overflow-wrap:anywhere}
-.weekhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.job{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px}.jobtop{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}.jobtop strong{font-size:15px}.jobfields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.jobfields .wide{grid-column:1/-1}.jobpay{display:flex;justify-content:space-between;background:#f5f8f6;padding:9px 10px;border-radius:8px;margin-top:9px;font-size:14px}.jobpay strong{font-variant-numeric:tabular-nums}
-.toggleline{display:flex;align-items:center;justify-content:space-between;gap:12px}.switch{width:48px;height:28px;border-radius:20px;background:#cbd4ce;padding:3px;display:inline-flex;align-items:center;border:0;flex-shrink:0}.switch span{height:22px;width:22px;border-radius:50%;background:white;box-shadow:0 1px 3px #0003;transition:transform .15s}.switch[aria-checked=true]{background:var(--green)}.switch[aria-checked=true] span{transform:translateX(20px)}
-.notice{background:#fff8e5;border:1px solid #f0dfac;color:#604c18;border-radius:10px;padding:10px;font-size:13px;margin-top:10px}.status{font-size:13px;color:var(--muted);margin-top:8px;white-space:pre-wrap}.empty{padding:20px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px}
-@media(max-width:520px){main{padding:10px}.card{padding:13px}.fieldgrid,.jobfields{grid-template-columns:1fr}.summary{grid-template-columns:1fr}.metric{display:flex;align-items:center;justify-content:space-between;gap:10px}.metric strong{font-size:19px}.jobfields .wide{grid-column:auto}.actions button,.actions .button{flex:1}}
+:root{--bg:#eef1ee;--card:#fff;--ink:#18211f;--mute:#5d6b66;--line:#d5dcd7;--acc:#1d6b57;--warn:#b45f06}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header{background:#18211f;color:#fff;padding:20px 16px}
+h1{margin:0;font-size:1.5rem}header p{margin:4px 0 0;color:#b9c7c1;font-size:.9rem}
+main{max-width:640px;margin:0 auto;padding:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+h2{margin:0 0 8px;font-size:1.1rem}
+.note{color:var(--mute);font-size:.85rem;margin:8px 0 0}
+input,select,button{font:inherit;width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);min-height:44px}
+button{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:600;cursor:pointer}
+button.alt{background:#fff;color:var(--acc)}
+button.danger{background:#fff;color:#a32020;border-color:#e2b8b8}
+.row{display:flex;gap:8px;margin-top:8px}.row>*{flex:1;min-width:0}
+.job{border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:8px;display:grid;gap:6px;background:#fafcfa}
+.job.chk{border-color:var(--warn);background:#fff8ee}
+.flag{color:var(--warn);font-size:.8rem}
+.pay{text-align:right;color:var(--mute);font-size:.9rem}.pay b{color:var(--ink)}
+.week h3{margin:14px 0 4px;font-size:1.05rem;display:flex;justify-content:space-between}
+.day{border-top:1px solid var(--line);padding:8px 0}
+.dh{display:flex;align-items:center;gap:8px}
+.dh strong{flex:1}.dh span{color:var(--mute);font-size:.9rem}
+.dh button{width:auto;min-height:36px;padding:4px 10px;font-size:.85rem}
+.tot{display:flex;justify-content:space-between;padding:6px 0;font-size:1.05rem}.tot b{font-variant-numeric:tabular-nums}
+.tot.big{border-top:2px solid var(--ink);margin-top:4px;font-weight:700}
+.tog{display:flex;align-items:center;gap:10px;margin-top:10px}.tog input{width:24px;min-height:24px;height:24px}
+#status{margin-top:8px;font-size:.9rem;color:var(--acc)}#status.err{color:#a32020}
+#empty{color:var(--mute);padding:8px 0}
+.hide{display:none}
 </style>
 </head>
 <body>
-<header><h1>Window Job Tracker</h1><p>Scan tickets · review jobs · calculate pay · export your set</p></header>
+<header><h1>Window Job Tracker</h1><p>Scan tickets, review jobs, calculate pay, export your set</p></header>
 <main>
+
 <section class="card">
-<h2>1. Upload ticket photos</h2>
-<input id="photos" type="file" accept="image/*" multiple>
-<p class="hint">Choose one or more ticket photos. OCR runs in your browser using an online OCR library; check every field before exporting.</p>
-<div class="actions"><button id="scanBtn">Scan selected photos</button><button class="secondary" id="addBlank">Add job manually</button></div>
-<div class="status" id="scanStatus" role="status"></div>
-<div class="notice">Ticket reading is a first pass, not guaranteed. Prices, dates, names, and addresses must be checked before you trust the totals.</div>
+<h2>1. Add jobs</h2>
+<div class="row">
+<select id="weekDefault" aria-label="New jobs go into"><option value="1">Week 1</option><option value="2">Week 2</option></select>
+<select id="dayDefault" aria-label="Weekday"></select>
+</div>
+<div class="row"><button id="pick">Choose ticket photos</button><button id="manual" class="alt">Add job manually</button></div>
+<input id="files" type="file" accept="image/*" multiple class="hide">
+<div id="status" role="status"></div>
+<p class="note">Photos are read in your browser by an online OCR library, so you need internet. Reading is a first guess: check every field. Orange jobs are unchecked scans.</p>
 </section>
 
 <section class="card">
-<h2>2. Set details</h2>
-<div class="fieldgrid">
-<div><label for="setLabel">Set name (optional)</label><input id="setLabel" placeholder="e.g. October jobs"></div>
-<div><label for="weekDefault">New jobs go into</label><select id="weekDefault"><option value="1">Week 1</option><option value="2">Week 2</option></select></div>
-</div>
-<div class="actions"><button class="secondary" id="importBtn">Import .txt set</button><input id="importFile" type="file" accept=".txt,text/plain" hidden><button class="secondary" id="clearBtn">Clear current set</button></div>
-<p class="hint">Import a previously exported set to edit it or use the extra-worker display toggle without rescanning tickets.</p>
+<h2>Manage your set</h2>
+<div class="row"><button id="impBtn" class="alt">Import .txt set</button><button id="clear" class="danger">Clear current set</button></div>
+<input id="imp" type="file" accept=".txt,text/plain" class="hide">
+<p class="note">Import a set you exported earlier to edit it or use the extra-worker toggle without rescanning tickets.</p>
 </section>
 
 <section class="card">
-<div class="weekhead"><h2>3. Jobs and totals</h2><span class="muted" id="jobCount">0 jobs</span></div>
-<div class="summary">
-<div class="metric"><span>Week 1 pay</span><strong id="w1total">$0.00</strong></div>
-<div class="metric"><span>Week 2 pay</span><strong id="w2total">$0.00</strong></div>
-<div class="metric"><span>Combined pay</span><strong id="grandtotal">$0.00</strong></div>
+<h2>2. Jobs and totals</h2>
+<div id="count" class="note">0 jobs</div>
+<div id="empty">No jobs yet. Tap a weekday below to add ticket photos, or tap Add job manually.</div>
+<div id="weeks"></div>
+<div style="margin-top:12px">
+<div class="tot"><span>Week 1 pay</span><b id="t1">$0.00</b></div>
+<div class="tot"><span>Week 2 pay</span><b id="t2">$0.00</b></div>
+<div class="tot big"><span>Combined pay</span><b id="tc">$0.00</b></div>
 </div>
-<div class="toggleline" style="margin-top:14px">
-<div><strong>Additional worker</strong><div class="muted">Doubles displayed pay only. Never changes exported pay.</div></div>
-<button id="workerToggle" class="switch" role="switch" aria-checked="false" aria-label="Toggle additional worker"><span></span></button>
-</div>
-<div id="jobs"><div class="empty">No jobs yet. Upload ticket photos or add a job manually.</div></div>
+<label class="tog"><input type="checkbox" id="extra"><span><b>Additional worker</b><br><span class="note">Doubles displayed pay only. Never changes exported pay.</span></span></label>
 </section>
 
 <section class="card">
-<h2>4. Export your set</h2>
-<p class="muted">Creates a readable plain-text file with uppercase names, spaced-out job details, week totals, and combined total. The commission rate is not printed.</p>
-<div class="actions"><button id="exportBtn">Export .txt document</button></div>
-<div class="status" id="exportStatus"></div>
+<h2>3. Export your set</h2>
+<button id="export">Export .txt document</button>
+<p class="note">Creates a plain-text file with uppercase names, job details, daily, weekly and combined totals. The file name comes from your earliest and latest job dates.</p>
 </section>
 </main>
+
 <script>
-(() => {
-const $ = id => document.getElementById(id);
-let jobs = [];
-let extraWorker = false;
-let nextId = 1;
-const money = n => (Number(n)||0).toLocaleString('en-US',{style:'currency',currency:'USD'});
-const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const payFor = job => Math.round((Math.max(0,Number(job.price)||0)*0.15 + Number.EPSILON)*100)/100;
-function isoToShort(v){if(!v)return '';let m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?`${m[2]}-${m[3]}-${m[1].slice(2)}`:v}
-function shortToISO(v){let m=String(v||'').trim().match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2}|\d{4})$/);if(!m)return '';let y=m[3].length===2?'20'+m[3]:m[3];return `${y}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`}
-function displayDate(v){return v?isoToShort(v):''}
-function createJob(data={}){return {id:nextId++,week:String(data.week||$('weekDefault').value||'1'),name:data.name||'',date:data.date||'',address:data.address||'',price:data.price??'',source:data.source||''}}
-function addJob(data={}){jobs.push(createJob(data));render()}
-function updateJob(id,key,value){const j=jobs.find(x=>x.id===id);if(j){j[key]=value;renderTotals()}}
+const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+let jobs=[],extra=false,uid=0;
+const $=id=>document.getElementById(id);
+const p2=n=>String(n).padStart(2,'0');
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+const cents=v=>Math.round((parseFloat(v)||0)*100);
+const comm=j=>Math.round(cents(j.price)*15/100); // each job rounded to the cent
+const money=c=>'$'+(c/100).toFixed(2);
+const validIso=s=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const d=new Date(s+'T00:00:00');return !isNaN(d)&&d.toISOString().slice(0,10)===s};
+const mdy=s=>s.slice(5,7)+'-'+s.slice(8,10)+'-'+s.slice(2,4);
+const fromMdy=s=>{const m=s.match(/(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/);if(m){let y=+m[3];if(y<100)y+=2000;const t=y+'-'+p2(m[1])+'-'+p2(m[2]);return validIso(t)?t:''}return validIso(s.trim())?s.trim():''};
+
+$('dayDefault').innerHTML=DAYS.map((d,i)=>`<option value="${i}">${d}</option>`).join('');
+const dest=()=>({w:+$('weekDefault').value,d:+$('dayDefault').value});
+function addJob(o){const j={id:++uid,name:'',date:'',addr:'',price:'',w:1,d:0,chk:false,...o};jobs.push(j);return j}
+
+function jobHTML(j){
+ const wo=[1,2].map(n=>`<option value="${n}"${j.w===n?' selected':''}>Week ${n}</option>`).join('');
+ const dopt=DAYS.map((d,i)=>`<option value="${i}"${j.d===i?' selected':''}>${d}</option>`).join('');
+ return `<div class="job${j.chk?' chk':''}" data-id="${j.id}">
+ ${j.chk?'<div class="flag">Scanned: check every field</div>':''}
+ <input data-f="name" placeholder="Customer name" value="${esc(j.name)}">
+ <div class="row" style="margin:0"><input type="date" data-f="date" value="${esc(j.date)}"><input data-f="price" inputmode="decimal" placeholder="Job price" value="${esc(j.price)}"></div>
+ <input data-f="addr" placeholder="Address" value="${esc(j.addr)}">
+ <div class="row" style="margin:0"><select data-f="w">${wo}</select><select data-f="d">${dopt}</select></div>
+ <div class="row" style="margin:0;align-items:center"><button class="danger" data-del>Delete</button><div class="pay">Commission <b>${money(comm(j))}</b></div></div></div>`;
+}
+const sum=l=>l.reduce((a,j)=>a+comm(j),0);
+const show=c=>money(c*(extra?2:1));
 function render(){
- const host=$('jobs');
- if(!jobs.length){host.innerHTML='<div class="empty">No jobs yet. Upload ticket photos or add a job manually.</div>';renderTotals();return}
- host.innerHTML='';
- ['1','2'].forEach(week=>{
-   const list=jobs.filter(j=>j.week===week);
-   const section=document.createElement('div');
-   section.innerHTML=`<div class="weekhead" style="margin-top:18px"><h3>WEEK ${week}</h3><span class="muted">${list.length} job${list.length===1?'':'s'}</span></div>`;
-   if(!list.length){section.insertAdjacentHTML('beforeend','<div class="empty">No jobs in this week.</div>')}
-   list.forEach(j=>{
-    const div=document.createElement('div');div.className='job';
-    div.innerHTML=`<div class="jobtop"><strong>${esc((j.name||'NEW JOB').toUpperCase())}</strong><button class="danger" data-remove="${j.id}">Remove</button></div>
-    <div class="jobfields">
-    <div><label>Name</label><input data-id="${j.id}" data-key="name" value="${esc(j.name)}" placeholder="Customer name"></div>
-    <div><label>Date</label><input data-id="${j.id}" data-key="date" type="date" value="${esc(j.date)}"></div>
-    <div class="wide"><label>Address</label><input data-id="${j.id}" data-key="address" value="${esc(j.address)}" placeholder="Job address"></div>
-    <div><label>Job price ($)</label><input data-id="${j.id}" data-key="price" type="number" min="0" step="0.01" value="${esc(j.price)}" placeholder="0.00"></div>
-    <div><label>Week</label><select data-id="${j.id}" data-key="week"><option value="1" ${j.week==='1'?'selected':''}>Week 1</option><option value="2" ${j.week==='2'?'selected':''}>Week 2</option></select></div>
-    </div><div class="jobpay"><span>Pay at 15%</span><strong>${money(payFor(j))}</strong></div>`;
-    section.appendChild(div);
-   });
-   host.appendChild(section);
- });
- host.querySelectorAll('[data-id]').forEach(el=>{
-   el.addEventListener('change',()=>updateJob(Number(el.dataset.id),el.dataset.key,el.value));
-   if(el.dataset.key==='name'||el.dataset.key==='address'||el.dataset.key==='price')el.addEventListener('input',()=>{const j=jobs.find(x=>x.id===Number(el.dataset.id));if(j){j[el.dataset.key]=el.value;const card=el.closest('.job');const title=card.querySelector('.jobtop strong');title.textContent=(j.name||'NEW JOB').toUpperCase();card.querySelector('.jobpay strong').textContent=money(payFor(j));renderTotals()}});
- });
- host.querySelectorAll('[data-remove]').forEach(b=>b.addEventListener('click',()=>{jobs=jobs.filter(j=>j.id!==Number(b.dataset.remove));render()}));
- renderTotals();
+ $('weeks').innerHTML=[1,2].map(w=>`<div class="week"><h3>Week ${w}<span data-wt="${w}"></span></h3>`+DAYS.map((d,i)=>{
+  const l=jobs.filter(j=>j.w===w&&j.d===i);
+  return `<div class="day"><div class="dh"><strong>${d}</strong><span data-dt="${w}-${i}"></span><button class="alt" data-photos="${w}-${i}">Photos</button><button class="alt" data-add="${w}-${i}">+ Job</button></div>${l.map(jobHTML).join('')}</div>`}).join('')+'</div>').join('');
+ totals();
 }
-function renderTotals(){
- const total=w=>jobs.filter(j=>j.week===w).reduce((s,j)=>s+payFor(j),0);
- const mult=extraWorker?2:1;
- $('w1total').textContent=money(total('1')*mult);$('w2total').textContent=money(total('2')*mult);$('grandtotal').textContent=money((total('1')+total('2'))*mult);
- $('jobCount').textContent=`${jobs.length} job${jobs.length===1?'':'s'}`;
-}
-$('addBlank').addEventListener('click',()=>addJob());
-$('workerToggle').addEventListener('click',()=>{extraWorker=!extraWorker;$('workerToggle').setAttribute('aria-checked',String(extraWorker));renderTotals()});
-$('clearBtn').addEventListener('click',()=>{if(confirm('Clear all jobs from the current working set? Export anything you need first.')){jobs=[];$('setLabel').value='';render();$('scanStatus').textContent='Current set cleared.'}});
-$('importBtn').addEventListener('click',()=>$('importFile').click());
-$('importFile').addEventListener('change',async e=>{
- const f=e.target.files[0];if(!f)return;
- try{const txt=await f.text();const parsed=parseText(txt);if(!parsed.length){alert('No jobs were recognized. Please import a text file exported by this tracker.');return}
- jobs=parsed.map(j=>createJob(j));$('setLabel').value=f.name.replace(/\.txt$/i,'');render();$('scanStatus').textContent=`Imported ${jobs.length} jobs from ${f.name}. Review the details before exporting.`;$('exportStatus').textContent='';}
- catch(err){alert('Could not read this file: '+err.message)}finally{e.target.value=''}
-});
-function parseText(txt){
- const out=[];let week='1';let cur=null;
- const lines=txt.replace(/\r/g,'').split('\n');
- for(let raw of lines){
-  const line=raw.trim();if(/^WEEK\s*2/i.test(line)){if(cur)out.push(cur);cur=null;week='2';continue}
-  if(/^WEEK\s*1/i.test(line)){if(cur)out.push(cur);cur=null;week='1';continue}
-  if(!line||/^SET:/i.test(line)||/^KEY:/i.test(line)||/^={3,}$/.test(line)||/^-{3,}$/.test(line)||/TOTAL:/i.test(line)||/^COMBINED/i.test(line))continue;
-  if(line.startsWith('**')&&line.endsWith('**')){if(cur)out.push(cur);cur={week,name:line.replace(/\*/g,'').trim(),date:'',address:'',price:''};continue}
-  if(/^[A-Z0-9][A-Z0-9 .,'’()&/-]{1,80}$/.test(line)&&!/^KEY$|^NO JOBS$/.test(line)&&!/^WEEK\s*\d/i.test(line)){if(cur)out.push(cur);cur={week,name:line.trim(),date:'',address:'',price:''};continue}
-  if(!cur)continue;
-  let m=line.match(/^Date\s*:\s*(.+)$/i);if(m){cur.date=shortToISO(m[1])||m[1];continue}
-  m=line.match(/^Name\s*:\s*(.+)$/i);if(m){cur.name=m[1];continue}
-  m=line.match(/^Address\s*:\s*(.+)$/i);if(m){cur.address=m[1];continue}
-  m=line.match(/^Job Price\s*:\s*\$?([\d,]+(?:\.\d{1,2})?)/i);if(m){cur.price=m[1].replace(/,/g,'');continue}
-  // Compatibility with pipe-delimited earlier draft
-  m=line.match(/^(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*\$?([\d,]+(?:\.\d{1,2})?)/);
-  if(m){if(cur)out.push(cur);cur={week,date:shortToISO(m[1]),name:m[2].trim(),address:m[3].trim(),price:m[4].replace(/,/g,'')};}
+function totals(){
+ for(const w of [1,2]){
+  $('weeks').querySelector(`[data-wt="${w}"]`).textContent=show(sum(jobs.filter(j=>j.w===w)));
+  DAYS.forEach((_,i)=>{const e=$('weeks').querySelector(`[data-dt="${w}-${i}"]`);const l=jobs.filter(j=>j.w===w&&j.d===i);e.textContent=l.length?show(sum(l)):''});
  }
- if(cur)out.push(cur);
- return out.filter(j=>j.name||j.address||j.price);
+ const a=sum(jobs.filter(j=>j.w===1)),b=sum(jobs.filter(j=>j.w===2));
+ $('t1').textContent=show(a);$('t2').textContent=show(b);$('tc').textContent=show(a+b);
+ $('count').textContent=jobs.length+(jobs.length===1?' job':' jobs');
+ $('empty').classList.toggle('hide',jobs.length>0);
 }
-function getDateBounds(){
- const dates=jobs.map(j=>j.date).filter(v=>/^\d{4}-\d{2}-\d{2}$/.test(v)).sort();
- if(!dates.length)return ['NO-DATE','NO-DATE'];
- const fmt=v=>{const [y,m,d]=v.split('-');return `${m}-${d}-${y.slice(2)}`};
- return [fmt(dates[0]),fmt(dates[dates.length-1])];
+function setStatus(t,err){$('status').textContent=t;$('status').className=err?'err':''}
+
+$('weeks').addEventListener('input',e=>{
+ const f=e.target.dataset.f;if(!f||f==='w'||f==='d')return;
+ const card=e.target.closest('.job'),j=jobs.find(x=>x.id==card.dataset.id);
+ j[f]=e.target.value;
+ if(j.chk){j.chk=false;card.classList.remove('chk');const fl=card.querySelector('.flag');if(fl)fl.remove()}
+ card.querySelector('.pay b').textContent=money(comm(j));totals();
+});
+$('weeks').addEventListener('change',e=>{
+ const f=e.target.dataset.f;if(f!=='w'&&f!=='d')return;
+ jobs.find(x=>x.id==e.target.closest('.job').dataset.id)[f]=+e.target.value;render();
+});
+$('weeks').addEventListener('click',e=>{
+ const t=e.target;
+ if(t.dataset.del!==undefined){if(confirm('Delete this job?')){jobs=jobs.filter(x=>x.id!=t.closest('.job').dataset.id);render()}}
+ else if(t.dataset.photos){const[w,d]=t.dataset.photos.split('-');setDest(+w,+d);$('files').click()}
+ else if(t.dataset.add){const[w,d]=t.dataset.add.split('-');setDest(+w,+d);addJob({w:+w,d:+d});render()}
+});
+function setDest(w,d){$('weekDefault').value=w;$('dayDefault').value=d}
+$('extra').onchange=e=>{extra=e.target.checked;totals()};
+$('pick').onclick=()=>$('files').click();
+$('manual').onclick=()=>{const{w,d}=dest();addJob({w,d});render();setStatus('Blank job added to Week '+w+', '+DAYS[d]+'.')};
+$('clear').onclick=()=>{if(jobs.length&&confirm('Clear all jobs in this set? This cannot be undone.')){jobs=[];render();setStatus('')}};
+window.onbeforeunload=e=>{if(jobs.length){e.preventDefault();e.returnValue=''}};
+
+/* ---------- OCR ---------- */
+function loadOCR(){return window.Tesseract?Promise.resolve():new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';s.onload=ok;s.onerror=()=>no(new Error('load'));document.head.appendChild(s)})}
+async function shrink(f){
+ try{const u=URL.createObjectURL(f),im=new Image();im.src=u;await im.decode();
+  const k=Math.min(1,1800/Math.max(im.width,im.height)),c=document.createElement('canvas');
+  c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);return c}
+ catch(_){return f}
 }
-function makeText(){
- const bounds=getDateBounds();let out=[`SET: ${bounds[0]}, ${bounds[1]}`,'','KEY: Name | Date | Address | Job Price | Pay',''];
- ['1','2'].forEach(w=>{
-  out.push('========================================',`                 WEEK ${w}`,'========================================','');
-  const list=jobs.filter(j=>j.week===w);
-  list.forEach((j,i)=>{
-   out.push(`${(j.name||'UNNAMED JOB').toUpperCase()}`,'',`Date      : ${displayDate(j.date)||'NOT ENTERED'}`,`Address   : ${j.address||'NOT ENTERED'}`,`Job Price : ${money(j.price)}`,`Pay       : ${money(payFor(j))}`);
-   if(i<list.length-1)out.push('','----------------------------------------','');
-   else out.push('');
+function parseTicket(t){
+ const L=t.split(/\n/).map(s=>s.trim()).filter(Boolean),r={};
+ const dm=t.match(/\b(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})\b/);if(dm)r.date=fromMdy(dm[0]);
+ const num=s=>{const m=s.match(/(\d{1,5}(?:,\d{3})*(?:\.\d{2})?)\s*$/);return m?m[1].replace(/,/g,''):''};
+ const tl=L.find(l=>/total|price|amount|due/i.test(l)&&/\d/.test(l));
+ if(tl&&num(tl))r.price=num(tl);
+ else{const a=[...t.matchAll(/\$\s?(\d{1,5}(?:,\d{3})*(?:\.\d{2})?)/g)].map(m=>parseFloat(m[1].replace(/,/g,'')));if(a.length)r.price=String(Math.max(...a))}
+ const st=/^\d{1,6}\s+[\w .'-]+\b(st|street|ave|avenue|rd|road|dr|drive|ln|lane|ct|court|blvd|way|pl|place|cir|circle|trl|trail|hwy|pkwy)\b/i;
+ const al=L.find(l=>st.test(l));if(al)r.addr=al;
+ const nl=L.find(l=>/^(customer|client|name)\b/i.test(l));
+ if(nl)r.name=nl.replace(/^(customer|client|name)\s*[:#-]?\s*/i,'');
+ else{const c=L.find(l=>/^[A-Za-z][A-Za-z .'-]{2,38}$/.test(l)&&l.split(/\s+/).length>=2&&!st.test(l));if(c)r.name=c}
+ return r;
+}
+$('files').onchange=async e=>{
+ const fs=[...e.target.files];e.target.value='';if(!fs.length)return;
+ const{w,d}=dest(),made=fs.map(()=>addJob({w,d,chk:true}));render();
+ setStatus('Loading scanner…');
+ try{await loadOCR()}catch(_){setStatus('Could not load the scanner. Check your internet connection. '+fs.length+' blank job(s) were added so you can fill them in by hand.',true);return}
+ let bad=0;
+ for(let i=0;i<fs.length;i++){
+  setStatus('Reading photo '+(i+1)+' of '+fs.length+'…');
+  try{const res=await Tesseract.recognize(await shrink(fs[i]),'eng');Object.assign(made[i],parseTicket(res.data.text))}catch(_){bad++}
+  render();
+ }
+ setStatus('Done. Check every orange job before trusting the totals.'+(bad?' '+bad+' photo(s) could not be read; fill those in by hand.':''),bad>0);
+};
+
+/* ---------- Export / import ---------- */
+function build(){
+ const L=[];
+ for(const w of [1,2]){
+  L.push('WEEK '+w,'');
+  DAYS.forEach((d,i)=>{
+   const l=jobs.filter(j=>j.w===w&&j.d===i).sort((a,b)=>a.date.localeCompare(b.date));
+   L.push(d.toUpperCase());
+   if(!l.length)L.push('No jobs');
+   l.forEach(j=>{L.push('',(j.name||'UNNAMED').toUpperCase(),'Date: '+(validIso(j.date)?mdy(j.date):''),'Address: '+j.addr,'Job price: '+money(cents(j.price)),'Commission pay: '+money(comm(j)))});
+   L.push('',d+' total: '+money(sum(l)),'');
   });
-  if(!list.length)out.push('NO JOBS','');
-  out.push('----------------------------------------',`WEEK ${w} TOTAL: ${money(list.reduce((s,j)=>s+payFor(j),0))}`,'','');
- });
- out.push('========================================',`COMBINED TOTAL: ${money(jobs.reduce((s,j)=>s+payFor(j),0))}`,'========================================','');
- return out.join('\n');
-}
-$('exportBtn').addEventListener('click',()=>{
- if(!jobs.length){alert('Add or scan at least one job before exporting.');return}
- const text=makeText();const blob=new Blob([text],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;
- const [first,last]=getDateBounds();a.download=`Set ${first}, ${last}.txt`.replace(/[<>:"/\\|?*]/g,'-');document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
- $('exportStatus').textContent=`Exported ${jobs.length} jobs. The file contains individual pay and totals, not the extra-worker multiplier.`;
-});
-function guessDate(text){
- let m=text.match(/\b(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})\b/);if(m)return shortToISO(m[0]);
- m=text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);if(m)return m[0];
- return '';
-}
-function guessPrice(text){
- const lines=text.split(/\n/).map(x=>x.trim()).filter(Boolean);
- const likely=lines.filter(l=>/(total|price|amount|job|sale|contract|grand)/i.test(l));
- const pool=(likely.length?likely:lines).flatMap(l=>[...l.matchAll(/\$\s?(\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\d+(?:\.\d{2})?)/g)].map(m=>({value:Number(m[1].replace(/,/g,'')),line:l})));
- if(!pool.length)return '';
- pool.sort((a,b)=>b.value-a.value);return pool[0].value.toFixed(2);
-}
-async function scanImages(files){
- $('scanStatus').textContent='Loading the text-recognition engine…';
- if(!window.Tesseract){
-  await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=()=>reject(new Error('Could not load OCR. Check your internet connection and try again.'));document.head.appendChild(s)});
+  L.push('Week '+w+' total: '+money(sum(jobs.filter(j=>j.w===w))),'','');
  }
- const worker=await Tesseract.createWorker('eng');
- try{
-  for(let i=0;i<files.length;i++){
-   $('scanStatus').textContent=`Reading ticket ${i+1} of ${files.length}…`;
-   const result=await worker.recognize(files[i]);const text=result.data.text||'';
-   const date=guessDate(text);const price=guessPrice(text);
-   // Keep OCR text attached for reference; fields are deliberately reviewable.
-   addJob({week:$('weekDefault').value,date,name:'',address:'',price,source:text});
-   const j=jobs[jobs.length-1];
-   const lines=text.split(/\n/).map(x=>x.trim()).filter(Boolean);
-   // Conservative name/address guesses only when a label is present.
-   let nm=text.match(/(?:customer|client|name)\s*[:#-]\s*([^\n]+)/i);if(nm)j.name=nm[1].trim().slice(0,100);
-   let ad=text.match(/(?:job address|address|service address)\s*[:#-]\s*([^\n]+)/i);if(ad)j.address=ad[1].trim().slice(0,180);
-   if(!j.name&&lines.length)j.name='';
-   render();
-  }
-  $('scanStatus').textContent=`Finished scanning ${files.length} photo(s). Review every detected field. OCR text is not used as a substitute for your corrections.`;
- }catch(err){$('scanStatus').textContent='Scan problem: '+err.message}
- finally{await worker.terminate();$('photos').value=''}
+ L.push('Combined total: '+money(sum(jobs)));
+ return L.join('\n')+'\n';
 }
-$('scanBtn').addEventListener('click',async()=>{
- const files=[...$('photos').files];if(!files.length){alert('Choose one or more ticket photos first.');return}
- $('scanBtn').disabled=true;
- try{await scanImages(files)}catch(e){$('scanStatus').textContent=e.message||String(e)}finally{$('scanBtn').disabled=false}
-});
+function fileName(){
+ const v=jobs.map(j=>j.date).filter(validIso).sort();
+ if(!v.length)return 'Set.txt';
+ const a=mdy(v[0]),b=mdy(v[v.length-1]);
+ return 'Set '+(a===b?a:a+', '+b)+'.txt';
+}
+$('export').onclick=()=>{
+ if(!jobs.length){setStatus('Add at least one job before exporting.',true);return}
+ const bad=jobs.filter(j=>!validIso(j.date)).length;
+ if(bad&&!confirm(bad+' job(s) have no valid date, so they will not count toward the file name. Export anyway?'))return;
+ const u=URL.createObjectURL(new Blob([build()],{type:'text/plain'})),a=document.createElement('a');
+ a.href=u;a.download=fileName();document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);
+};
+$('impBtn').onclick=()=>$('imp').click();
+$('imp').onchange=async e=>{
+ const f=e.target.files[0];e.target.value='';if(!f)return;
+ if(jobs.length&&!confirm('Replace the current jobs with the imported set?'))return;
+ const text=await f.text(),lines=text.split(/\r?\n/).map(s=>s.trim()),out=[];
+ let w=1,d=0,cur=null,prev='';
+ for(const l of lines){
+  if(!l)continue;
+  let m;
+  if((m=l.match(/^WEEK\s*([12])$/i))){w=+m[1];prev='';continue}
+  const di=DAYS.findIndex(x=>x.toUpperCase()===l.toUpperCase());
+  if(di>=0){d=di;prev='';cur=null;continue}
+  if((m=l.match(/^Date:\s*(.*)$/i))){cur={name:prev,date:fromMdy(m[1]),addr:'',price:'',w,d};out.push(cur);continue}
+  if(cur&&(m=l.match(/^Address:\s*(.*)$/i))){cur.addr=m[1];continue}
+  if(cur&&(m=l.match(/^Job price:\s*\$?\s*([\d,.]+)/i))){cur.price=m[1].replace(/,/g,'');continue}
+  if(/^Commission pay:|total:/i.test(l)||/^No jobs$/i.test(l)){continue}
+  prev=l;
+ }
+ if(!out.length){setStatus('No jobs found in that file. Use a .txt exported from this page.',true);return}
+ jobs=[];out.forEach(o=>addJob(o));render();setStatus('Imported '+out.length+' job(s). Commission is recalculated from each job price.');
+};
 render();
-})();
 </script>
 </body>
 </html>
