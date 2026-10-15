@@ -101,7 +101,7 @@ function jobHTML(j){
  const wo=[1,2].map(n=>`<option value="${n}"${j.w===n?' selected':''}>Week ${n}</option>`).join('');
  const dopt=DAYS.map((d,i)=>`<option value="${i}"${j.d===i?' selected':''}>${d}</option>`).join('');
  return `<div class="job${j.chk?' chk':''}" data-id="${j.id}">
- ${j.chk?'<div class="flag">Scanned: check every field</div>':''}
+ ${j.chk?'<div class="flag fc">Scanned: check every field</div>':''}${j.dna?'<div class="flag fd">Date: N/A. Pick the date below.</div>':''}
  <input data-f="name" placeholder="Customer name" value="${esc(j.name)}">
  <div class="row" style="margin:0"><input type="date" data-f="date" value="${esc(j.date)}"><input data-f="price" inputmode="decimal" placeholder="Job price" value="${esc(j.price)}"></div>
  <input data-f="addr" placeholder="Address" value="${esc(j.addr)}">
@@ -132,7 +132,8 @@ $('weeks').addEventListener('input',e=>{
  const f=e.target.dataset.f;if(!f||f==='w'||f==='d')return;
  const card=e.target.closest('.job'),j=jobs.find(x=>x.id==card.dataset.id);
  j[f]=e.target.value;
- if(j.chk){j.chk=false;card.classList.remove('chk');const fl=card.querySelector('.flag');if(fl)fl.remove()}
+ if(j.chk){j.chk=false;card.classList.remove('chk');const fl=card.querySelector('.fc');if(fl)fl.remove()}
+ if(f==='date'&&j.dna&&e.target.value){j.dna=false;const fd=card.querySelector('.fd');if(fd)fd.remove()}
  card.querySelector('.pay b').textContent=money(comm(j));totals();
 });
 $('weeks').addEventListener('change',e=>{
@@ -156,27 +157,73 @@ window.onbeforeunload=e=>{if(jobs.length){e.preventDefault();e.returnValue=''}};
 function loadOCR(){return window.Tesseract?Promise.resolve():new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';s.onload=ok;s.onerror=()=>no(new Error('load'));document.head.appendChild(s)})}
 async function shrink(f){
  try{const u=URL.createObjectURL(f),im=new Image();im.src=u;await im.decode();
-  const k=Math.min(1,1800/Math.max(im.width,im.height)),c=document.createElement('canvas');
-  c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);return c}
+  const k=Math.min(1,2000/Math.max(im.width,im.height)),c=document.createElement('canvas');
+  c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+  const x=c.getContext('2d');x.drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);
+  try{const d=x.getImageData(0,0,c.width,c.height),p=d.data;
+   for(let i=0;i<p.length;i+=4){let g=.299*p[i]+.587*p[i+1]+.114*p[i+2];g=(g-140)*1.5+140;g=g<0?0:g>255?255:g;p[i]=p[i+1]=p[i+2]=g}
+   x.putImageData(d,0,0)}catch(_){}
+  return c}
  catch(_){return f}
 }
+const fixDigits=s=>s.replace(/[Oo]/g,'0').replace(/[Il|]/g,'1');
+function plausible(iso,now=new Date()){
+ if(!validIso(iso))return false;
+ const t=new Date(iso+'T12:00:00').getTime(),n=now.getTime();
+ return t>=n-400*864e5&&t<=n+14*864e5;
+}
+function findDate(t){
+ const sep='\\s*[\\/\\-.|]\\s*',dg='([0-9OoIl|]{1,2})',yr='([0-9OoIl|]{2,4})';
+ const rx=[new RegExp('DATE\\s*[:.]?\\s*'+dg+sep+dg+sep+yr,'i'),new RegExp('\\b'+dg+sep+dg+sep+yr+'\\b')];
+ for(const r of rx){
+  const m=t.match(r);if(!m)continue;
+  let mo=+fixDigits(m[1]),d=+fixDigits(m[2]),y=+fixDigits(m[3]);
+  if(y<100)y+=2000;
+  const iso=y+'-'+p2(mo)+'-'+p2(d);
+  if(plausible(iso))return iso;
+ }
+ return '';
+}
+function cleanName(n){return n.replace(/[^A-Za-z0-9&'.,\- ]/g,' ').replace(/\s+/g,' ').trim()}
 function parseTicket(t){
- const L=t.split(/\n/).map(s=>s.trim()).filter(Boolean),r={};
- const dm=t.match(/\b(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})\b/);if(dm)r.date=fromMdy(dm[0]);
- const num=s=>{const m=s.match(/(\d{1,5}(?:,\d{3})*(?:\.\d{2})?)\s*$/);return m?m[1].replace(/,/g,''):''};
- const tl=L.find(l=>/total|price|amount|due/i.test(l)&&/\d/.test(l));
- if(tl&&num(tl))r.price=num(tl);
- else{const a=[...t.matchAll(/\$\s?(\d{1,5}(?:,\d{3})*(?:\.\d{2})?)/g)].map(m=>parseFloat(m[1].replace(/,/g,'')));if(a.length)r.price=String(Math.max(...a))}
- const st=/^\d{1,6}\s+[\w .'-]+\b(st|street|ave|avenue|rd|road|dr|drive|ln|lane|ct|court|blvd|way|pl|place|cir|circle|trl|trail|hwy|pkwy)\b/i;
- const al=L.find(l=>st.test(l));if(al)r.addr=al;
- const nl=L.find(l=>/^(customer|client|name)\b/i.test(l));
- if(nl)r.name=nl.replace(/^(customer|client|name)\s*[:#-]?\s*/i,'');
- else{const c=L.find(l=>/^[A-Za-z][A-Za-z .'-]{2,38}$/.test(l)&&l.split(/\s+/).length>=2&&!st.test(l));if(c)r.name=c}
+ const L=t.split(/\n/).map(s=>s.replace(/\s+/g,' ').trim()).filter(Boolean),r={};
+ r.date=findDate(t);r.dna=!r.date;
+
+ // price: Subtotal only, never the Total line
+ const amt=s=>{const m=[...s.matchAll(/(\d{1,5}(?:,\d{3})*\.\d{2})/g)];return m.length?m[m.length-1][1].replace(/,/g,''):''};
+ const si=L.findIndex(l=>/sub\s*-?\s*total/i.test(l));
+ if(si>=0)r.price=amt(L[si])||amt(L[si+1]||'');
+
+ // name + address: the lines under Vendor/Store Number
+ const stop=l=>/office|home\s*:|cell\s*:|amount due|\(\d{3}\)\s*\d{3}|must be checked|paid cash|credit card/i.test(l);
+ const label=l=>/(store|vendor)\s*(number|no\b|#)|invoice|^date/i.test(l);
+ const street=l=>/^\d{1,6}\s+\S/.test(l)&&!/\$/.test(l)&&!/\(\d{3}\)/.test(l);
+ let bi=-1;L.forEach((l,i)=>{if(/(store|vendor)\s*(number|no\b|#)/i.test(l))bi=i});
+ let block=[];
+ if(bi>=0){for(let i=bi+1;i<L.length&&block.length<5;i++){if(stop(L[i]))break;if(label(L[i])||/^[\d\s.:-]{0,6}$/.test(L[i]))continue;block.push(L[i])}}
+ else{const k=L.findIndex(street);if(k>0){block.push(L[k-1]);for(let i=k;i<L.length&&block.length<4;i++){if(stop(L[i]))break;block.push(L[i])}}}
+ if(block.length){
+  const k=block.findIndex(street);
+  let nameLine=k>0?block.slice(0,k).join(' '):block[0];
+  const addrLines=k>=0?block.slice(k):block.slice(1);
+  let city='';
+  const cl=addrLines.find(l=>/[A-Za-z]/.test(l)&&/\b[A-Z]{2}\b\s*\d{5}/.test(l));
+  if(cl)city=cl.replace(/,?\s*\b[A-Z]{2}\b\s*\d{5}(-\d{4})?\s*$/,'').trim();
+  let addr=addrLines.map(l=>l.replace(/\s*,?\s*\b([A-Z]{2})\b\s+(\d{5}(-\d{4})?)\s*$/,', $1 $2').replace(/^,\s*/,'')).join(', ');
+  const hay=addr.toLowerCase();
+  // drop anything in the name that repeats in the address (city, street bits)
+  let parts=nameLine.split(/\s+[-\u2013\u2014]\s+/).map(cleanName).filter(Boolean);
+  if(parts.length>1)parts=[parts[0],...parts.slice(1).filter(p=>!hay.includes(p.toLowerCase()))];
+  let name=parts.join(' - ');
+  if(city&&name.toLowerCase().endsWith(city.toLowerCase())&&name.length>city.length)name=name.slice(0,name.length-city.length).replace(/[\s-]+$/,'');
+  if(name)r.name=name;
+  if(addr)r.addr=addr;
+ }
  return r;
 }
 $('files').onchange=async e=>{
  const fs=[...e.target.files];e.target.value='';if(!fs.length)return;
- const{w,d}=dest(),made=fs.map(()=>addJob({w,d,chk:true}));render();
+ const{w,d}=dest(),made=fs.map(()=>addJob({w,d,chk:true,dna:true}));render();
  setStatus('Loading scanner…');
  try{await loadOCR()}catch(_){setStatus('Could not load the scanner. Check your internet connection. '+fs.length+' blank job(s) were added so you can fill them in by hand.',true);return}
  let bad=0;
@@ -197,7 +244,7 @@ function build(){
    const l=jobs.filter(j=>j.w===w&&j.d===i).sort((a,b)=>a.date.localeCompare(b.date));
    L.push(d.toUpperCase());
    if(!l.length)L.push('No jobs');
-   l.forEach(j=>{L.push('',(j.name||'UNNAMED').toUpperCase(),'Date: '+(validIso(j.date)?mdy(j.date):''),'Address: '+j.addr,'Job price: '+money(cents(j.price)),'Commission pay: '+money(comm(j)))});
+   l.forEach(j=>{L.push('',(j.name||'UNNAMED').toUpperCase(),'Date: '+(validIso(j.date)?mdy(j.date):'N/A'),'Address: '+j.addr,'Job price: '+money(cents(j.price)),'Commission pay: '+money(comm(j)))});
    L.push('',d+' total: '+money(sum(l)),'');
   });
   L.push('Week '+w+' total: '+money(sum(jobs.filter(j=>j.w===w))),'','');
