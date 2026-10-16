@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#18211f">
+<meta name="theme-color" content="#2a1250">
 <title>Window Job Tracker</title>
 <style>
-:root{--bg:#eef1ee;--card:#fff;--ink:#18211f;--mute:#5d6b66;--line:#d5dcd7;--acc:#1d6b57;--warn:#b45f06}
+:root{--bg:#f3eff9;--card:#fff;--ink:#1d1232;--mute:#6b5f82;--line:#dcd2ea;--acc:#5b2a9d;--warn:#b45f06}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
-header{background:#18211f;color:#fff;padding:20px 16px}
-h1{margin:0;font-size:1.5rem}header p{margin:4px 0 0;color:#b9c7c1;font-size:.9rem}
+header{background:#2a1250;color:#fff;padding:20px 16px}
+h1{margin:0;font-size:1.5rem}header p{margin:4px 0 0;color:#cdbfe6;font-size:.9rem}
 main{max-width:640px;margin:0 auto;padding:12px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
 h2{margin:0 0 8px;font-size:1.1rem}
@@ -20,7 +20,7 @@ button{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:600;
 button.alt{background:#fff;color:var(--acc)}
 button.danger{background:#fff;color:#a32020;border-color:#e2b8b8}
 .row{display:flex;gap:8px;margin-top:8px}.row>*{flex:1;min-width:0}
-.job{border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:8px;display:grid;gap:6px;background:#fafcfa}
+.job{border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:8px;display:grid;gap:6px;background:#fbf9fe}
 .job.chk{border-color:var(--warn);background:#fff8ee}
 .flag{color:var(--warn);font-size:.8rem}
 .na{border-color:var(--warn)!important;background:#fff8ee}
@@ -46,7 +46,7 @@ button.danger{background:#fff;color:#a32020;border-color:#e2b8b8}
 .rbar button{min-height:40px;padding:6px 10px;font-size:.9rem}
 #rbody{max-width:640px;margin:0 auto;padding:12px 14px 40px}
 .rh h2{margin:0;font-size:1.4rem}.rs{color:var(--mute);font-size:.9rem}
-.rwh{display:flex;justify-content:space-between;align-items:baseline;background:#18211f;color:#fff;border-radius:8px;padding:10px 12px;margin-top:18px;font-weight:700;font-size:1.05rem}
+.rwh{display:flex;justify-content:space-between;align-items:baseline;background:#2a1250;color:#fff;border-radius:8px;padding:10px 12px;margin-top:18px;font-weight:700;font-size:1.05rem}
 .rwh small,.rdh small{font-weight:400;font-size:.72rem;margin:0 4px 0 10px;text-transform:uppercase;opacity:.75}
 .rdh{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--ink);margin-top:14px;padding-bottom:4px;font-weight:700}
 .rj{display:grid;grid-template-columns:1fr auto auto;gap:4px 14px;padding:10px 0;border-bottom:1px solid var(--line)}
@@ -56,11 +56,19 @@ button.danger{background:#fff;color:#a32020;border-color:#e2b8b8}
 .rt{margin-top:22px;border-top:3px solid var(--ink);padding-top:8px}
 .rt div{display:flex;justify-content:space-between;padding:4px 0}.rt .big{font-weight:700;font-size:1.15rem}
 @media print{header,main,.rbar{display:none!important}#report{position:static;overflow:visible}.rwh{background:#fff;color:#000;border:2px solid #000}}
-.hide{display:none}
+.full{font-size:.85rem;color:var(--acc);font-weight:600}
+.sel{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--mute)}.sel input{width:22px;min-height:22px;height:22px}
+.sugg{background:#f3ecfc;border:1px solid #b79ddb;border-radius:8px;padding:8px;font-size:.9rem}.sugg .row{margin-top:6px}
+#selbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#fff;border-top:2px solid var(--acc);padding:8px 12px calc(8px + env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#selbar select,#selbar button{width:auto;flex:1;min-height:40px;padding:4px 10px;font-size:.9rem}#selcount{width:100%;font-weight:600}
+.bk{display:grid;gap:6px;border-top:1px solid var(--line);padding:8px 0}
+summary{cursor:pointer;font-weight:600;min-height:36px}
+details.bank summary{font-weight:600;cursor:pointer;min-height:36px}
+.hide{display:none!important}
 </style>
 </head>
 <body>
-<header><h1>Window Job Tracker</h1><p>Scan tickets, review jobs, calculate pay, export your set &middot; Version 7</p></header>
+<header><h1>Window Job Tracker</h1><p>Scan tickets, review jobs, calculate pay, export your set &middot; Version 10</p></header>
 <main>
 
 <section class="card">
@@ -86,7 +94,20 @@ button.danger{background:#fff;color:#a32020;border-color:#e2b8b8}
 </section>
 
 <section class="card">
-<h2>2. Jobs and totals</h2>
+<details class="bank"><summary>Job bank (<span id="bkCount">0</span>)</summary>
+<p class="note">Save a perfect ticket from its card. When a later scan looks close to a saved job, you'll be asked "Did you mean this job?". The bank stays on this phone only, separate from your sets, snapshots and exports, and is never uploaded. Edit any saved job here like a ticket.</p>
+<div class="row"><button id="bkSelAll" class="alt">Select all</button><button id="bkDel" class="danger">Delete selected</button></div>
+<div id="bkSelInfo" class="note">0 selected</div>
+<div id="bankList"></div>
+<div class="row"><button id="bkSave" class="alt">Back up bank</button><button id="bkLoad" class="alt">Restore bank</button></div>
+<input id="bkFile" type="file" accept=".json,application/json" class="hide">
+<button id="bkClear" class="danger" style="margin-top:8px">Wipe job bank</button>
+</details>
+</section>
+
+<section class="card">
+<div class="row" style="margin:0 0 6px;align-items:center"><h2 style="flex:1;margin:0">2. Jobs and totals</h2><button id="selBtn" class="alt" style="width:auto;min-height:36px;padding:4px 12px">Select</button></div>
+<div id="selstrip" class="row hide" style="align-items:center"><span id="selcount2" style="flex:1">0 selected</span><button id="selall" class="alt" style="flex:0 0 auto;width:auto;min-height:36px">Select all</button><button id="seldone" style="flex:0 0 auto;width:auto;min-height:36px">Done</button></div>
 <div id="count" class="note">0 jobs</div>
 <div id="empty">No jobs yet. Tap a weekday below to add ticket photos, or tap Add job manually.</div>
 <div id="weeks"></div>
@@ -103,7 +124,16 @@ button.danger{background:#fff;color:#a32020;border-color:#e2b8b8}
 <div class="row" style="margin-top:0"><button id="viewRep" class="alt">View readable report</button><button id="export">Export .txt document</button></div>
 <p class="note">Creates a plain-text file with uppercase names, job details, daily, weekly and combined totals. The file name comes from your earliest and latest job dates.</p>
 </section>
+<section class="card"><details><summary>Settings</summary>
+<p class="note" id="stInfo"></p>
+<div class="row"><button id="wipeSet" class="danger">Clear current set</button><button id="wipeSnaps" class="danger">Delete snapshots</button></div>
+<div class="row"><button id="wipeBank" class="danger">Wipe job bank</button></div>
+<button id="wipeAll" class="danger" style="margin-top:8px">Wipe everything on this phone</button>
+<p class="note">Photos are read inside your browser and never uploaded. Only the scanner library is downloaded. Your jobs, snapshots and job bank are stored only in this browser. Wiping removes them for good, so export a .txt or back up the bank first if you want a copy.</p>
+</details></section>
 </main>
+
+<div id="selbar" class="hide"><span id="selcount">0 selected</span><select id="selpart" aria-label="What to copy"><option value="all">All details</option><option value="name">Names</option><option value="date">Dates</option><option value="addr">Addresses</option><option value="price">Prices</option><option value="pay">Pay</option></select><button id="selcopy">Copy selected</button><button id="selclose" class="alt">Close</button></div>
 
 <div id="report" class="hide"><div class="rbar"><button id="rclose" class="alt">Close</button><button id="rprint">Save as PDF / Print</button><button id="rcopy" class="alt">Copy text</button></div><div id="rbody"></div></div>
 
@@ -114,15 +144,17 @@ const $=id=>document.getElementById(id);
 const p2=n=>String(n).padStart(2,'0');
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 const cents=v=>Math.round((parseFloat(v)||0)*100);
-const comm=j=>Math.round(cents(j.price)*15/100); // each job rounded to the cent
+const full=j=>cents(j.price)+cents(j.extra);   // price in full = price + optional second price
+const comm=j=>Math.round(full(j)*15/100); // each job rounded to the cent
 const money=c=>'$'+(c/100).toFixed(2);
+const priceTxt=j=>{const e=cents(j.extra);return money(full(j))+(e?' ('+(cents(j.price)/100).toFixed(2)+' + '+(e/100).toFixed(2)+')':'')};
 const validIso=s=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const d=new Date(s+'T00:00:00');return !isNaN(d)&&d.toISOString().slice(0,10)===s};
 const mdy=s=>s.slice(5,7)+'-'+s.slice(8,10)+'-'+s.slice(2,4);
 const fromMdy=s=>{const m=s.match(/(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/);if(m){let y=+m[3];if(y<100)y+=2000;const t=y+'-'+p2(m[1])+'-'+p2(m[2]);return validIso(t)?t:''}return validIso(s.trim())?s.trim():''};
 
 $('dayDefault').innerHTML=DAYS.map((d,i)=>`<option value="${i}">${d}</option>`).join('');
 const dest=()=>({w:+$('weekDefault').value,d:+$('dayDefault').value});
-function addJob(o){const j={id:++uid,name:'',date:'',addr:'',price:'',w:1,d:0,chk:false,...o};jobs.push(j);return j}
+function addJob(o){const j={id:++uid,name:'',date:'',addr:'',price:'',extra:'',store:'',w:1,d:0,chk:false,...o};jobs.push(j);return j}
 
 const NA_LABEL={name:'Customer name',addr:'Address',price:'Price',date:'Date'};
 function naText(j){const m=Object.keys(NA_LABEL).filter(k=>j.na&&j.na[k]).map(k=>NA_LABEL[k]);return m.length?'N/A: '+m.join(', ')+'. Fill in by hand.':''}
@@ -132,12 +164,17 @@ function jobHTML(j){
  const na=f=>j.na&&j.na[f]?' na':'';
  const ph=(f,t)=>j.na&&j.na[f]?'N/A':t;
  return `<div class="job${j.chk?' chk':''}" data-id="${j.id}">
+ ${selMode?'<label class="sel"><input type="checkbox" data-sel'+(sel.has(j.id)?' checked':'')+'> Select this job</label>':''}
  ${j.chk?'<div class="flag fc">Scanned: check every field</div>':''}${naText(j)?'<div class="flag fd">'+naText(j)+'</div>':''}
+ <div class="sg">${sgHTML(j)}</div>
  <input class="${na('name')}" data-f="name" placeholder="${ph('name','Customer name')}" value="${esc(j.name)}">
  <div class="row" style="margin:0"><input class="${na('date')}" type="date" data-f="date" value="${esc(j.date)}"><input class="${na('price')}" data-f="price" inputmode="decimal" placeholder="${ph('price','Job price')}" value="${esc(j.price)}"></div>
+ <div class="row" style="margin:0">${j.extra||j.showExtra?'<input data-f="extra" inputmode="decimal" placeholder="Second price" value="'+esc(j.extra||'')+'">':'<button class="alt" data-addx style="min-height:36px;font-size:.85rem">+ Second price</button>'}${j.store||j.showStore?'<input data-f="store" placeholder="Store #" value="'+esc(j.store||'')+'">':'<button class="alt" data-addst style="min-height:36px;font-size:.85rem">+ Store #</button>'}</div>
+ <div class="full">${cents(j.extra)?'Price in full '+esc(priceTxt(j)):''}</div>
  <input class="${na('addr')}" data-f="addr" placeholder="${ph('addr','Address')}" value="${esc(j.addr)}">
  <div class="row" style="margin:0"><select data-f="w">${wo}</select><select data-f="d">${dopt}</select></div>
- <div class="row" style="margin:0;align-items:center"><button class="danger" data-del>Delete</button><div class="pay">Commission <b>${money(comm(j))}</b></div></div>
+ <div class="row" style="margin:0"><button class="danger" data-del>Delete</button><button class="alt" data-bank>Save to job bank</button></div>
+ <div class="pay">Commission <b>${money(comm(j))}</b></div>
  <details class="cp"><summary>Copy</summary><div class="cpr"><button class="alt" data-cp="all">All</button><button class="alt" data-cp="name">Name</button><button class="alt" data-cp="date">Date</button><button class="alt" data-cp="addr">Address</button><button class="alt" data-cp="price">Price</button><button class="alt" data-cp="pay">Pay</button></div></details></div>`;
 }
 const sum=l=>l.reduce((a,j)=>a+comm(j),0);
@@ -157,7 +194,7 @@ function totals(){
  $('t1').textContent=show(a);$('t2').textContent=show(b);$('tc').textContent=show(a+b);
  $('count').textContent=jobs.length+(jobs.length===1?' job':' jobs');
  $('empty').classList.toggle('hide',jobs.length>0);
- queueSave();
+ updateSel();queueSave();
 }
 function setStatus(t,err){for(const id of ['status','status2']){$(id).textContent=t;$(id).className=err?'err':''}}
 
@@ -167,16 +204,21 @@ $('weeks').addEventListener('input',e=>{
  j[f]=e.target.value;
  if(j.chk){j.chk=false;card.classList.remove('chk');const fl=card.querySelector('.fc');if(fl)fl.remove()}
  if(j.na&&j.na[f]&&e.target.value){j.na[f]=false;e.target.classList.remove('na');const fd=card.querySelector('.fd');if(fd){const m=naText(j);if(m)fd.textContent=m;else fd.remove()}}
- card.querySelector('.pay b').textContent=money(comm(j));totals();
+ card.querySelector('.pay b').textContent=money(comm(j));const fu=card.querySelector('.full');if(fu)fu.textContent=cents(j.extra)?'Price in full '+priceTxt(j):'';totals();
 });
 $('weeks').addEventListener('change',e=>{
- const f=e.target.dataset.f;if(f!=='w'&&f!=='d')return;
+ const tg=e.target;
+ if(tg.dataset.sel!==undefined){const id=+tg.closest('.job').dataset.id;tg.checked?sel.add(id):sel.delete(id);updateSel();return}
+ const f=e.target.dataset.f;
+ if(f==='name'||f==='addr'){const card=tg.closest('.job'),j=jobs.find(x=>x.id==card.dataset.id);
+  if(!j.nosg&&getBank().length){const m=bestMatch(j);j.sg=m?m.id:null;card.querySelector('.sg').innerHTML=sgHTML(j)}return}
+ if(f!=='w'&&f!=='d')return;
  jobs.find(x=>x.id==e.target.closest('.job').dataset.id)[f]=+e.target.value;render();
 });
 function jobText(j,part){
  const dt=validIso(j.date)?mdy(j.date):'N/A';
- return {all:[(j.name||'UNNAMED').toUpperCase(),'Date: '+dt,'Address: '+(j.addr||'N/A'),'Job price: '+money(cents(j.price)),'Commission pay: '+money(comm(j))].join('\n'),
-  name:j.name||'',date:dt,addr:j.addr||'',price:(cents(j.price)/100).toFixed(2),pay:(comm(j)/100).toFixed(2)}[part];
+ return {all:[(j.name||'UNNAMED').toUpperCase(),'Date: '+dt,'Address: '+(j.addr||'N/A'),...(j.store?['Store #: '+j.store]:[]),'Job price: '+priceTxt(j),'Commission pay: '+money(comm(j))].join('\n'),
+  name:j.name||'',date:dt,addr:j.addr||'',price:(full(j)/100).toFixed(2),pay:(comm(j)/100).toFixed(2)}[part];
 }
 async function copyText(t){
  try{await navigator.clipboard.writeText(t);return true}
@@ -186,6 +228,12 @@ $('weeks').addEventListener('click',async e=>{
  const t=e.target;
  if(t.dataset.del!==undefined){if(confirm('Delete this job?')){jobs=jobs.filter(x=>x.id!=t.closest('.job').dataset.id);render()}}
  else if(t.dataset.cp){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id),o=t.textContent,ok=await copyText(jobText(j,t.dataset.cp));t.textContent=ok?'Copied':'Failed';setTimeout(()=>t.textContent=o,1200)}
+ else if(t.dataset.addst!==undefined){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id);j.showStore=true;render()}
+ else if(t.dataset.addx!==undefined){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id);j.showExtra=true;render()}
+ else if(t.dataset.sgyes!==undefined){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id),b=getBank().find(x=>x.id===j.sg);
+  if(b){j.name=b.name;j.addr=b.addr;if(b.store&&!j.store)j.store=b.store;if(j.na){j.na.name=false;j.na.addr=false}j.sg=null;render()}}
+ else if(t.dataset.sgno!==undefined){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id);j.sg=null;j.nosg=true;t.closest('.sg').innerHTML=''}
+ else if(t.dataset.bank!==undefined){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id),o=t.textContent,msg=saveToBank(j);t.textContent=msg;setTimeout(()=>t.textContent=o,1600)}
  else if(t.dataset.photos){const[w,d]=t.dataset.photos.split('-');setDest(+w,+d);$('files').click()}
  else if(t.dataset.add){const[w,d]=t.dataset.add.split('-');setDest(+w,+d);addJob({w:+w,d:+d});render()}
 });
@@ -215,9 +263,10 @@ function plausible(iso,now=new Date()){
  const t=new Date(iso+'T12:00:00').getTime(),n=now.getTime();
  return t>=n-400*864e5&&t<=n+14*864e5;
 }
-function findDate(t){
- const sep='\\s*[\\/\\-.|]\\s*',dg='([0-9OoIl|]{1,2})',yr='([0-9OoIl|]{2,4})';
- const rx=[new RegExp('DATE\\s*[:.]?\\s*'+dg+sep+dg+sep+yr,'i'),new RegExp('\\b'+dg+sep+dg+sep+yr+'\\b')];
+function findDate(t,strict){
+ const dg='([0-9OoIl|]{1,2})',yr='([0-9OoIl|]{2,4})',s1='\\s*[\\/\\-.|]\\s*',s2='(?:\\s*[\\/\\-.,|]\\s*|\\s+)';
+ const rx=[new RegExp('\\bDATE\\s*[:.]?\\s*'+dg+s2+dg+s2+yr,'i')];
+ if(!strict)rx.push(new RegExp('\\b'+dg+s1+dg+s1+yr+'\\b'));
  for(const r of rx){
   const m=t.match(r);if(!m)continue;
   let mo=+fixDigits(m[1]),d=+fixDigits(m[2]),y=+fixDigits(m[3]);
@@ -254,7 +303,58 @@ function cityOf(line){
  if(out.some(x=>/^[A-Z][a-z]/.test(x)))while(out.length>1&&/^[A-Z]{2,4}$/.test(out[out.length-1]))out.pop();  // misread state like "PLE"
  return out.slice(0,4).join(' ').replace(/\b[a-z]\b/g,' ').replace(/\s+/g,' ').trim();
 }
-function cityFrom(lines){for(const l of lines){const c=cityOf(l);if(/[A-Za-z]{3}/.test(c))return c}return ''}
+function cityFrom(lines){
+ const z=lines.filter(l=>/\b\d{5}\b/.test(l));              // prefer the line that has the full zip
+ for(const l of [...z,...lines]){const c=cityOf(l);if(/[A-Za-z]{3}/.test(c))return c}return '';
+}
+const isStreet=l=>/^(?=\S*\d)[0-9OoIlSZB]{1,6}\s+[A-Za-z]{2}/.test(l)&&!/\$/.test(l)&&!/\(\d{3}\)/.test(l);
+// street line: drop zip/state, and cut off junk glued on from the next column of the ticket
+function tidyStreet(l){
+ let s=l.replace(/\b\d{5}(-\d{4})?\b/g,(m,g,off)=>off===0?m:' ').replace(/\bF[LlI1]\b\.?/g,' ').replace(/[^A-Za-z0-9 .'#\/,-]/g,' ').replace(/\s+/g,' ').trim();
+ const tk=s.split(' '),SUF=/^(st|street|ave|avenue|rd|road|dr|drive|blvd|boulevard|ln|lane|ct|court|way|pl|place|pkwy|parkway|hwy|highway|cir|circle|trl|trail|ter|terrace|loop|sq|square|us-?\d+|fl-?\d+)[.,]?$/i;
+ const e=tk.findIndex((x,i)=>i>0&&SUF.test(x));
+ if(e>=0){
+  let j=e+1;
+  while(j<tk.length){const x=tk[j],pv=tk[j-1];
+   if(/^(\d{1,5}|N|S|E|W|NE|NW|SE|SW|North|South|East|West|[A-Z])[.,]?$/.test(x)||/^(Ste|Suite|Unit|Apt|Bldg|Building)\.?,?$/i.test(x)||/^#\S+$/.test(x)||(/^(ste|suite|unit|apt|bldg|#)\.?$/i.test(pv)&&/^[A-Za-z0-9-]{1,6},?$/.test(x)))j++;else break;
+  }
+  if(tk.slice(j).some(x=>/^[a-z]{1,3}$/.test(x)||/^\d{5,}$/.test(x)))s=tk.slice(0,j).join(' ');
+ }
+ return s.replace(/[ ,]+$/,'');
+}
+// layouts that don't look like the usual invoice
+function parseForm(t){
+ const L=t.split(/\n/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean),r={};
+ const done=()=>{const d=findDate(t,true);if(d)r.date=d;const pr=findPrice(L,t);if(pr)r.price=pr;return r};
+ let i;
+ // Budget Maintenance "Bundled Service Invoice": Store #, then Location Address with name, street, city
+ if((i=L.findIndex(l=>/location\s+address/i.test(l)))>=0){
+  const first=L[i].replace(/^.*?location\s+address\s*[:;.]?\s*/i,'').trim(),blk=[];
+  for(const l of [first,...L.slice(i+1,i+6)].filter(Boolean)){if(/clean outside|manager|store stamp|comments|^date/i.test(l))break;blk.push(l)}
+  const k=blk.findIndex(isStreet),nm=cleanName(k>0?blk.slice(0,k).join(' '):(blk[0]||''));
+  if(nm)r.name=nm;
+  if(k>=0){const c=cityFrom(blk.slice(k+1));r.addr=[tidyStreet(blk[k]),c].filter(Boolean).join(', ')}
+  const sm=t.match(/store\s*(?:#|no\.?|number)[ \t]*[:.#_ -]*(\d{1,6})\b/i);if(sm)r.store=sm[1];
+  return done();
+ }
+ // Ellis "Work Ticket": Location Information box = "Name #store - City", extra line, street, city/state/zip
+ if((i=L.findIndex(l=>/location\s+information/i.test(l)))>=0){
+  const blk=[];for(const l of L.slice(i+1,i+8)){if(/^phone|job description|^contact/i.test(l))break;blk.push(l)}
+  const k=blk.findIndex(isStreet),nl=blk[0]||'',m=nl.match(/^(.*?)\s*#\s*(\d{1,6})\b/);
+  if(m){const nm=cleanName(m[1]);if(nm)r.name=nm;r.store=m[2]}
+  else{const nm=cleanName(nl.split(/\s+[-\u2013\u2014]\s+/)[0]);if(nm&&!isStreet(nl))r.name=nm}
+  if(k>=0){const c=cityFrom(blk.slice(k+1));r.addr=[tidyStreet(blk[k]),c].filter(Boolean).join(', ')}
+  return done();                                             // only the labelled "Date:" counts, never the Scheduled date
+ }
+ // Elite "Construction Clean Sign-Off Form": handwritten Customer / Location, nothing else printed
+ if(/construction\s+clean|sign-?off\s+form/i.test(t)){
+  const g=lab=>{const l=L.find(x=>new RegExp(lab+'\\s*[:;]','i').test(x));return l?cleanName(l.replace(new RegExp('^.*?'+lab+'\\s*[:;]\\s*','i'),'')):''};
+  const v=g('location')||g('customer');
+  if(/[A-Za-z]{4}/.test(v)&&!/^(elite|customer|location)$/i.test(v))r.name=v;
+  return done();
+ }
+ return null;
+}
 // a clipped word at the end of one fragment that is the start of the next ("Kl" then "Kitchen")
 function dropStub(a,b){
  const aw=a.split(' '),w=aw[aw.length-1],v=(b.split(' ')[0]||'');
@@ -288,19 +388,22 @@ function regionText(data){
  return lines.map(l=>(l.words||[]).filter(w=>w.bbox&&w.bbox.x0>=xmin&&(/\d/.test(w.text)||w.confidence>=55)).map(w=>w.text).join(' ')).filter(Boolean).join('\n');
 }
 function parseTicket(t,data){
+ t=t.replace(/[\u2018\u2019]/g,"'");
+ const fm=parseForm(t);if(fm)return fm;
  const r={};
+ const sm=t.match(/store\s*(?:#|no\.?|number)[ \t]*[:.#_ -]*(\d{1,6})\b(?!\s+[A-Za-z])/i);if(sm)r.store=sm[1];
  r.date=findDate(t);
  const clean=x=>x.split(/\n/).map(s=>s.replace(/\s+/g,' ').trim()).filter(Boolean);
  const price=findPrice(clean(t),t);if(price)r.price=price;
 
  // mark every "Vendor Number"/"Store Number" label (even a clipped "re Number") so text merged onto its line is kept
  const base=regionText(data)||t;
- const T=base.replace(/(?:\b[A-Za-z]{1,6}\s+)?number\s*[:;.]?/gi,'\n\u00a7\n');
+ const T=base.replace(/(?:\b[A-Za-z]{1,6}\s+)?number[ \t]*[:;.#]?[ \t]*(?:\d{1,6}\b(?!\s+[A-Za-z]))?/gi,'\n\u00a7\n');
  const L=clean(T);
 
  const stop=l=>/office|home\s*:|cell\s*:|amount due|\(\d{3}\)\s*\d{3}|must be checked|paid cash|credit card/i.test(l);
- const junk=l=>l==='\u00a7'||!/[A-Za-z0-9]{2}/.test(l)||/^(invoice|date)\b/i.test(l);
- const street=l=>/^(?=\S*\d)[0-9OoIlSZB]{1,6}\s+[A-Za-z]{2}/.test(l)&&!/\$/.test(l)&&!/\(\d{3}\)/.test(l);
+ const junk=l=>l==='\u00a7'||!/[A-Za-z0-9]{2}/.test(l)||/^(invoice|date)\b/i.test(l)||/^(store|vendor)\s*(nu\w*|no\b|#|:|$)/i.test(l)||/^nu(m\w*)?[:;.]?$/i.test(l);
+ const street=isStreet;
  // a street line with 1-2 short junk tokens in front ("e 1704 West Bay Drive")
  const unjunk=(l,long)=>{const m=l.match(long?/^((?:\S+\s+){1,3})((?=\S*\d)[0-9OoIlSZB]{1,6}\s+[A-Za-z]{2}.*)$/:/^((?:\S{1,3}\s+){1,2})((?=\S*\d)[0-9OoIlSZB]{1,6}\s+[A-Za-z]{2}.*)$/);return m&&!/\d/.test(m[1])?m[2]:l};
  let bi=-1;L.forEach((l,i)=>{if(l==='\u00a7')bi=i});
@@ -315,7 +418,7 @@ function parseTicket(t,data){
  let frags=k>0?block.slice(0,k):[block[0]];
  const rest=k>=0?block.slice(k+1):block.slice(1);
  let streetLine=k>=0?block[k]:'';
- if(streetLine){const tk=streetLine.split(' ');streetLine=(tk[0]+' '+tk.slice(1).join(' ').replace(/\b\d{5}(-\d{4})?\b/g,' ').replace(/\bF[LlI1]\b\.?/g,' ').replace(/[^A-Za-z0-9 .'#\/-]/g,' ').replace(/\s+/g,' ')).trim()}
+ if(streetLine)streetLine=tidyStreet(streetLine);
  const city=cityFrom(rest);
  const cityOk=/[A-Za-z]{3}/.test(city)?city:'';
  const addr=[streetLine,cityOk].filter(Boolean).join(', ');
@@ -342,17 +445,39 @@ function parseTicket(t,data){
  if(name)r.name=name;
  return r;
 }
+let worker=null;
+const ocr=img=>worker?worker.recognize(img):Tesseract.recognize(img,'eng');
+function rot(c,deg){
+ if(!deg)return c;
+ const o=document.createElement('canvas'),q=deg%180!==0;o.width=q?c.height:c.width;o.height=q?c.width:c.height;
+ const x=o.getContext('2d');x.translate(o.width/2,o.height/2);x.rotate(deg*Math.PI/180);x.drawImage(c,-c.width/2,-c.height/2);return o;
+}
+function small(c,m){const k=Math.min(1,m/Math.max(c.width,c.height)),o=document.createElement('canvas');o.width=Math.round(c.width*k);o.height=Math.round(c.height*k);o.getContext('2d').drawImage(c,0,0,o.width,o.height);return o}
+// photos can be sideways or upside down: read a small copy each way up and keep the one with the most wide, confident words
+async function orient(c){
+ if(!(c&&c.width&&c.getContext))return c;
+ let best=0,bs=-1;
+ for(const deg of [0,90,270,180]){
+  const r=await ocr(small(rot(c,deg),1400)),ws=r.data.words||[];
+  const sc=ws.length?ws.filter(w=>w.confidence>60&&/[A-Za-z]{3}/.test(w.text)&&w.bbox&&(w.bbox.x1-w.bbox.x0)>=1.2*(w.bbox.y1-w.bbox.y0)).length:Math.round((r.data.confidence||0)/10);
+  if(sc>bs){bs=sc;best=deg}
+  if(deg===0&&sc>=30)break;
+ }
+ return rot(c,best);
+}
 $('files').onchange=async e=>{
  const fs=[...e.target.files];e.target.value='';if(!fs.length)return;
  const{w,d}=dest(),made=fs.map(()=>addJob({w,d,chk:true,na:{name:1,addr:1,price:1,date:1}}));render();
  setStatus('Loading scanner…');
  try{await loadOCR()}catch(_){setStatus('Could not load the scanner. Check your internet connection. '+fs.length+' blank job(s) were added so you can fill them in by hand.',true);return}
+ try{worker=await Tesseract.createWorker('eng')}catch(_){worker=null}
  let bad=0;
  for(let i=0;i<fs.length;i++){
   setStatus('Reading photo '+(i+1)+' of '+fs.length+'…');
-  try{const res=await Tesseract.recognize(await shrink(fs[i]),'eng');const r=parseTicket(res.data.text,res.data);Object.assign(made[i],r);made[i].na={name:!r.name,addr:!r.addr,price:!r.price,date:!r.date}}catch(_){bad++}
+  try{const res=await ocr(await orient(await shrink(fs[i])));const r=parseTicket(res.data.text,res.data);Object.assign(made[i],r);made[i].na={name:!r.name,addr:!r.addr,price:!r.price,date:!r.date};const mt=bestMatch(made[i]);made[i].sg=mt?mt.id:null}catch(_){bad++}
   render();
  }
+ if(worker){try{await worker.terminate()}catch(_){}worker=null}
  setStatus('Done. Check every orange job before trusting the totals.'+(bad?' '+bad+' photo(s) could not be read; fill those in by hand.':''),bad>0);
 };
 
@@ -365,7 +490,7 @@ function build(){
    const l=jobs.filter(j=>j.w===w&&j.d===i).sort((a,b)=>a.date.localeCompare(b.date));
    L.push(d.toUpperCase());
    if(!l.length)L.push('No jobs');
-   l.forEach(j=>{L.push('',(j.name||'UNNAMED').toUpperCase(),'Date: '+(validIso(j.date)?mdy(j.date):'N/A'),'Address: '+(j.addr||'N/A'),'Job price: '+money(cents(j.price)),'Commission pay: '+money(comm(j)))});
+   l.forEach(j=>{L.push('',(j.name||'UNNAMED').toUpperCase(),'Date: '+(validIso(j.date)?mdy(j.date):'N/A'),'Address: '+(j.addr||'N/A'),...(j.store?['Store #: '+j.store]:[]),'Job price: '+priceTxt(j),'Commission pay: '+money(comm(j)))});
    L.push('',d+' total: '+money(sum(l)),'');
   });
   L.push('Week '+w+' total: '+money(sum(jobs.filter(j=>j.w===w))),'','');
@@ -400,7 +525,8 @@ $('imp').onchange=async e=>{
   if(di>=0){d=di;prev='';cur=null;continue}
   if((m=l.match(/^Date:\s*(.*)$/i))){cur={name:prev,date:fromMdy(m[1]),addr:'',price:'',w,d};out.push(cur);continue}
   if(cur&&(m=l.match(/^Address:\s*(.*)$/i))){cur.addr=m[1];continue}
-  if(cur&&(m=l.match(/^Job price:\s*\$?\s*([\d,.]+)/i))){cur.price=m[1].replace(/,/g,'');continue}
+  if(cur&&(m=l.match(/^Store #:\s*(.*)$/i))){cur.store=m[1].trim();continue}
+  if(cur&&(m=l.match(/^Job price:\s*\$?\s*([\d,.]+)(?:\s*\(\s*\$?\s*([\d,.]+)\s*\+\s*\$?\s*([\d,.]+)\s*\))?/i))){const c=x=>x.replace(/,/g,'');if(m[2]&&m[3]){cur.price=c(m[2]);cur.extra=c(m[3])}else cur.price=c(m[1]);continue}
   if(/^Commission pay:|total:/i.test(l)||/^No jobs$/i.test(l)){continue}
   prev=l;
  }
@@ -408,7 +534,7 @@ $('imp').onchange=async e=>{
  jobs=[];out.forEach(o=>addJob(o));render();setStatus('Imported '+out.length+' job(s). Commission is recalculated from each job price.');openReport();
 };
 /* ---------- Readable report ---------- */
-const sumP=l=>l.reduce((a,j)=>a+cents(j.price),0);
+const sumP=l=>l.reduce((a,j)=>a+full(j),0);
 function rangeName(l){const v=l.map(j=>j.date).filter(validIso).sort();return v.length?(v[0]===v[v.length-1]?mdy(v[0]):mdy(v[0])+' to '+mdy(v[v.length-1])):'No dates'}
 function reportHTML(){
  let h='<div class="rh"><h2>Job report</h2><div class="rs">'+esc(rangeName(jobs))+' &middot; '+jobs.length+' job'+(jobs.length===1?'':'s')+'</div></div>';
@@ -419,7 +545,7 @@ function reportHTML(){
   DAYS.forEach((d,i)=>{
    const l=jobs.filter(j=>j.w===w&&j.d===i).sort((a,b)=>a.date.localeCompare(b.date));if(!l.length)return;
    h+='<div class="rdh"><span>'+d+'</span><span><small>Prices</small>'+money(sumP(l))+'<small>Pay</small>'+money(sum(l))+'</span></div>';
-   l.forEach(j=>{h+='<div class="rj"><div><div class="rname">'+esc((j.name||'UNNAMED').toUpperCase())+'</div><div class="radd">'+esc(j.addr||'N/A')+'</div><div class="rdt">'+(validIso(j.date)?mdy(j.date):'N/A')+'</div></div><div class="rc"><small>Job price</small>'+money(cents(j.price))+'</div><div class="rc pay"><small>Your pay</small>'+money(comm(j))+'</div></div>'});
+   l.forEach(j=>{h+='<div class="rj"><div><div class="rname">'+esc((j.name||'UNNAMED').toUpperCase())+'</div><div class="radd">'+esc(j.addr||'N/A')+(j.store?' &middot; Store #'+esc(j.store):'')+'</div><div class="rdt">'+(validIso(j.date)?mdy(j.date):'N/A')+'</div></div><div class="rc"><small>Job price</small>'+money(full(j))+(cents(j.extra)?'<small style="text-transform:none">('+(cents(j.price)/100).toFixed(2)+' + '+(cents(j.extra)/100).toFixed(2)+')</small>':'')+'</div><div class="rc pay"><small>Your pay</small>'+money(comm(j))+'</div></div>'});
   });
   h+='</section>';
  }
@@ -437,12 +563,12 @@ $('rcopy').onclick=async e=>{const b=e.target,o=b.textContent,ok=await copyText(
 const KEY='wjt_current_v1',SNAPS='wjt_snaps_v1';
 let ready=false,storeOk=false,saveT=0;
 function store(){try{return window.localStorage}catch(_){return null}}
-function plain(j){return{name:j.name,date:j.date,addr:j.addr,price:j.price,w:j.w,d:j.d,chk:!!j.chk,na:j.na||null}}
+function plain(j){return{name:j.name,date:j.date,addr:j.addr,price:j.price,extra:j.extra||'',store:j.store||'',w:j.w,d:j.d,chk:!!j.chk,na:j.na||null}}
 function sanitize(j){
  if(!j||typeof j!=='object')return null;
  const na=j.na&&typeof j.na==='object'?{name:!!j.na.name,addr:!!j.na.addr,price:!!j.na.price,date:!!j.na.date}:null;
  return{id:++uid,name:String(j.name||'').slice(0,120),date:validIso(String(j.date||''))?j.date:'',addr:String(j.addr||'').slice(0,200),
-  price:isFinite(parseFloat(j.price))?String(j.price).slice(0,12):'',w:j.w===2?2:1,d:Math.min(6,Math.max(0,parseInt(j.d)||0)),chk:!!j.chk,na};
+  price:isFinite(parseFloat(j.price))?String(j.price).slice(0,12):'',extra:isFinite(parseFloat(j.extra))?String(j.extra).slice(0,12):'',store:String(j.store||'').slice(0,12),w:j.w===2?2:1,d:Math.min(6,Math.max(0,parseInt(j.d)||0)),chk:!!j.chk,na};
 }
 function persist(){
  if(!ready||!storeOk)return;
@@ -482,8 +608,131 @@ $('snaps').onclick=e=>{
   jobs=x.jobs.map(sanitize).filter(Boolean);render();setStatus('Loaded "'+x.name+'".');
  }else if(b.dataset.dsnap!==undefined){if(confirm('Delete snapshot "'+x.name+'"?')){putSnaps(a.filter(v=>v.id!=x.id));renderSnaps()}}
 };
+/* ---------- Select several jobs to copy (hidden until you tap Select) ---------- */
+const sel=new Set();let selMode=false,selBarOpen=false;
+function updateSel(){
+ for(const id of [...sel])if(!jobs.some(j=>j.id===id))sel.delete(id);
+ if(selBarOpen&&!sel.size)selBarOpen=false;
+ $('selBtn').textContent=selMode?'Cancel':'Select';
+ $('selstrip').classList.toggle('hide',!selMode);
+ $('selbar').classList.toggle('hide',!selBarOpen);
+ $('selcount').textContent=$('selcount2').textContent=sel.size+' selected';
+ document.body.style.paddingBottom=selBarOpen?'130px':'';
+}
+function selOrdered(){return jobs.filter(j=>sel.has(j.id)).sort((a,b)=>a.w-b.w||a.d-b.d||a.date.localeCompare(b.date))}
+$('selBtn').onclick=()=>{selMode=!selMode;selBarOpen=false;sel.clear();render()};
+$('selall').onclick=()=>{jobs.forEach(j=>sel.add(j.id));render()};
+$('seldone').onclick=()=>{if(!sel.size){setStatus('Tap Select this job on each job you want, then Done.',true);return}selMode=false;selBarOpen=true;render()};
+$('selclose').onclick=()=>{selBarOpen=false;sel.clear();render()};
+$('selcopy').onclick=async e=>{
+ const part=$('selpart').value,l=selOrdered().map(j=>jobText(j,part)).join(part==='all'?'\n\n':'\n');
+ const b=e.target,o=b.textContent,ok=await copyText(l);b.textContent=ok?'Copied':'Failed';setTimeout(()=>b.textContent=o,1200);
+};
+
+/* ---------- Job bank (private, this phone only) ---------- */
+const BANK='wjt_bank_v1';
+const bankSel=new Set();
+const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+function sim(a,b){
+ a=norm(a);b=norm(b);if(!a||!b)return 0;
+ const l=1-lev(a,b)/Math.max(a.length,b.length);
+ const ta=new Set(a.split(' ')),tb=new Set(b.split(' '));let c=0;ta.forEach(x=>{if(tb.has(x))c++});
+ return Math.max(l,2*c/(ta.size+tb.size));
+}
+function cleanBank(a){
+ return Array.isArray(a)?a.filter(x=>x&&typeof x==='object'&&String(x.name||'').trim()&&String(x.addr||'').trim())
+  .map(x=>({id:String(x.id||Date.now()+'-'+Math.random().toString(36).slice(2,7)),name:String(x.name).slice(0,120),addr:String(x.addr).slice(0,200),store:String(x.store||'').slice(0,12),price:isFinite(parseFloat(x.price))?String(x.price).slice(0,12):'',t:Number(x.t)||Date.now()})):[];
+}
+function getBank(){const st=store();if(!st)return[];try{return cleanBank(JSON.parse(st.getItem(BANK)||'[]'))}catch(_){return[]}}
+function putBank(a){try{store().setItem(BANK,JSON.stringify(a));return true}catch(_){return false}}
+const cityOfAddr=a=>{const p=String(a||'').split(',');return p.length>1?norm(p[p.length-1]):''};
+function bestMatch(j){
+ let best=null,bs=0;
+ if(!norm(j.name)&&!norm(j.addr))return null;
+ const sj=norm(j.store);
+ for(const e of getBank()){
+  const se=norm(e.store);
+  if(sj&&se&&sj!==se)continue;                                               // different store number = different location
+  if(norm(e.name)===norm(j.name)&&norm(e.addr)===norm(j.addr))return null;   // already exactly a saved job
+  const same=sj&&se&&sj===se,ns=sim(j.name,e.name),as=sim(j.addr,e.addr);
+  const cj=cityOfAddr(j.addr),ce=cityOfAddr(e.addr);
+  if(cj&&ce&&sim(cj,ce)<.8)continue;                                         // different town = different location
+  if(!same&&norm(j.name)&&norm(j.addr)&&(ns<.4||as<.4))continue;             // a different business or location
+  if(!(ns>=.75||as>=.8||(ns>=.6&&as>=.6)||(same&&(ns>=.5||as>=.5))))continue;
+  const sc=Math.max(ns,as)+(ns>=.6&&as>=.6?.2:0)+(same?.3:0);
+  if(sc>bs){bs=sc;best=e}
+ }
+ return best;
+}
+function sgHTML(j){
+ if(!j.sg)return'';const b=getBank().find(x=>x.id===j.sg);if(!b)return'';
+ return '<div class="sugg">Did you mean <b>'+esc(b.name)+'</b>, '+esc(b.addr)+(b.store?' (Store #'+esc(b.store)+')':'')+'?'+(b.price?' <span class="note">(last price '+money(cents(b.price))+')</span>':'')+'<div class="row"><button data-sgyes>Yes, use it</button><button class="alt" data-sgno>No</button></div></div>';
+}
+function saveToBank(j){
+ if(!storeOk)return'Unavailable';
+ const name=j.name.trim(),addr=j.addr.trim(),sto=(j.store||'').trim();
+ if(!name||!addr){setStatus('Fill in the customer name and address first, so only complete jobs go in the bank.',true);return'Need name + address'}
+ const b=getBank(),i=b.findIndex(x=>norm(x.name)===norm(name)&&norm(x.addr)===norm(addr)&&norm(x.store)===norm(sto));
+ const rec={id:i>=0?b[i].id:Date.now()+'-'+Math.random().toString(36).slice(2,7),name,addr,store:sto,price:j.price||'',t:Date.now()};
+ if(i>=0)b[i]=rec;else{if(b.length>=500){setStatus('The job bank is full (500). Delete some entries.',true);return'Bank full'}b.unshift(rec)}
+ const ok=putBank(b);renderBank();refreshUsage();return ok?(i>=0?'Updated':'Saved'):'Failed';
+}
+function renderBank(){
+ const b=getBank();$('bkCount').textContent=b.length;
+ for(const id of [...bankSel])if(!b.some(x=>x.id===id))bankSel.delete(id);
+ $('bankList').innerHTML=b.length?b.map(x=>'<div class="bk" data-bid="'+esc(x.id)+'"><label class="sel"><input type="checkbox" data-bsel'+(bankSel.has(x.id)?' checked':'')+'> Select</label>'
+  +'<input data-bf="name" placeholder="Customer name" value="'+esc(x.name)+'"><input data-bf="addr" placeholder="Address" value="'+esc(x.addr)+'">'
+  +'<div class="row" style="margin:0"><input data-bf="store" placeholder="Store #" value="'+esc(x.store)+'"><input data-bf="price" inputmode="decimal" placeholder="Last price" value="'+esc(x.price)+'"></div></div>').join(''):'<p class="note">No saved jobs yet.</p>';
+ $('bkSelInfo').textContent=bankSel.size+' selected';
+}
+$('bankList').onchange=e=>{
+ const t=e.target,row=t.closest('.bk');if(!row)return;
+ if(t.dataset.bsel!==undefined){t.checked?bankSel.add(row.dataset.bid):bankSel.delete(row.dataset.bid);$('bkSelInfo').textContent=bankSel.size+' selected';return}
+ const f=t.dataset.bf;if(!f)return;
+ const b=getBank(),x=b.find(v=>v.id===row.dataset.bid);if(!x)return;
+ if((f==='name'||f==='addr')&&!t.value.trim()){t.value=x[f];setStatus('A saved job needs a name and an address. Delete it instead if you no longer want it.',true);return}
+ x[f]=f==='price'?(isFinite(parseFloat(t.value))?t.value.trim().slice(0,12):''):t.value.trim().slice(0,f==='addr'?200:f==='store'?12:120);
+ putBank(b);
+};
+$('bkSelAll').onclick=()=>{const b=getBank();if(bankSel.size===b.length)bankSel.clear();else b.forEach(x=>bankSel.add(x.id));renderBank()};
+$('bkDel').onclick=()=>{
+ if(!bankSel.size){setStatus('Tick Select on the saved jobs you want to delete.',true);return}
+ if(!confirm('Delete '+bankSel.size+' saved job'+(bankSel.size===1?'':'s')+' from the job bank?'))return;
+ putBank(getBank().filter(x=>!bankSel.has(x.id)));bankSel.clear();renderBank();refreshUsage();
+};
+$('bkClear').onclick=()=>{if(getBank().length&&confirm('Wipe the whole job bank? It will go back to empty. Back it up first if you might want it again.')){putBank([]);bankSel.clear();renderBank();refreshUsage()}};
+$('bkSave').onclick=()=>{
+ const b=getBank();if(!b.length){setStatus('The job bank is empty.',true);return}
+ const u=URL.createObjectURL(new Blob([JSON.stringify({type:'job-bank',v:2,entries:b})],{type:'application/json'})),a=document.createElement('a');
+ a.href=u;a.download='Job bank.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);
+};
+$('bkLoad').onclick=()=>$('bkFile').click();
+$('bkFile').onchange=async e=>{
+ const f=e.target.files[0];e.target.value='';if(!f)return;
+ try{const o=JSON.parse(await f.text()),inc=cleanBank(o&&o.entries);if(!inc.length)throw new Error('empty');
+  const b=getBank();let add=0;
+  for(const x of inc)if(!b.some(y=>norm(y.name)===norm(x.name)&&norm(y.addr)===norm(x.addr)&&norm(y.store)===norm(x.store))){b.push(x);add++}
+  putBank(b.slice(0,500));renderBank();refreshUsage();setStatus('Restored '+add+' job'+(add===1?'':'s')+' into the job bank.');
+ }catch(_){setStatus('That file is not a job bank backup.',true)}
+};
+
+/* ---------- Settings: see what is stored and wipe it ---------- */
+function refreshUsage(){
+ const st=store();if(!st){$('stInfo').textContent='Browser storage is unavailable here (Private Browsing?), so nothing is being saved.';return}
+ let n=0,b=0;try{for(let i=0;i<st.length;i++){const k=st.key(i);if(k&&k.indexOf('wjt_')===0){n++;b+=k.length+(st.getItem(k)||'').length}}}catch(_){}
+ $('stInfo').textContent='Stored on this phone: '+n+' item'+(n===1?'':'s')+', about '+Math.max(1,Math.round(b/1024))+' KB. It never leaves this browser.';
+}
+function wipeKeys(k){const st=store();if(st)k.forEach(x=>{try{st.removeItem(x)}catch(_){}})}
+function resetView(){clearTimeout(saveT);jobs=[];sel.clear();selMode=false;selBarOpen=false;bankSel.clear();render();renderSnaps();renderBank();refreshUsage()}
+$('wipeSet').onclick=()=>{if(confirm('Clear the current set and its autosave? Snapshots and the job bank are kept.')){wipeKeys([KEY,KEY+'_bad']);resetView();setStatus('Current set and autosave cleared.')}};
+$('wipeSnaps').onclick=()=>{if(confirm('Delete every saved snapshot?')){wipeKeys([SNAPS]);renderSnaps();refreshUsage();setStatus('All snapshots deleted.')}};
+$('wipeBank').onclick=()=>{if(confirm('Wipe the job bank? It will go back to empty.')){wipeKeys([BANK]);bankSel.clear();renderBank();refreshUsage();setStatus('Job bank wiped.')}};
+$('wipeAll').onclick=()=>{
+ if((prompt('This erases your current set, autosave, snapshots and job bank from this phone. Type WIPE to continue.')||'').trim().toUpperCase()!=='WIPE')return;
+ wipeKeys([KEY,KEY+'_bad',SNAPS,BANK]);resetView();setStatus('Everything on this phone was wiped.');
+};
 /*INIT*/
-restore();renderSnaps();
+restore();renderSnaps();renderBank();refreshUsage();
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(_){}
 ready=true;render();
 window.onbeforeunload=e=>{if(jobs.length&&!storeOk){e.preventDefault();e.returnValue=''}};
