@@ -33,17 +33,34 @@ button.danger{background:#fff;color:#a32020;border-color:#e2b8b8}
 .tot{display:flex;justify-content:space-between;padding:6px 0;font-size:1.05rem}.tot b{font-variant-numeric:tabular-nums}
 .tot.big{border-top:2px solid var(--ink);margin-top:4px;font-weight:700}
 .tog{display:flex;align-items:center;gap:10px;margin-top:10px}.tog input{width:24px;min-height:24px;height:24px}
-#status{margin-top:8px;font-size:.9rem;color:var(--acc)}#status.err{color:#a32020}
+#status,#status2{margin-top:8px;font-size:.9rem;color:var(--acc)}#status.err,#status2.err{color:#a32020}
 #empty{color:var(--mute);padding:8px 0}
 .cp{border:1px solid var(--line);border-radius:8px;background:#fff}
 .cp summary{padding:8px 12px;font-size:.85rem;color:var(--acc);font-weight:600;cursor:pointer}
 .cpr{display:flex;flex-wrap:wrap;gap:6px;padding:0 8px 8px}
 .cpr button{width:auto;flex:1;min-height:36px;padding:4px 8px;font-size:.85rem}
+.snap{display:flex;gap:8px;align-items:center;border-top:1px solid var(--line);padding:8px 0}
+.snap>div{flex:1;min-width:0}.snap button{width:auto;min-height:36px;padding:4px 10px;font-size:.85rem}
+#report{position:fixed;inset:0;z-index:50;background:#fff;overflow:auto;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.rbar{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);display:flex;gap:8px;padding:8px 12px}
+.rbar button{min-height:40px;padding:6px 10px;font-size:.9rem}
+#rbody{max-width:640px;margin:0 auto;padding:12px 14px 40px}
+.rh h2{margin:0;font-size:1.4rem}.rs{color:var(--mute);font-size:.9rem}
+.rwh{display:flex;justify-content:space-between;align-items:baseline;background:#18211f;color:#fff;border-radius:8px;padding:10px 12px;margin-top:18px;font-weight:700;font-size:1.05rem}
+.rwh small,.rdh small{font-weight:400;font-size:.72rem;margin:0 4px 0 10px;text-transform:uppercase;opacity:.75}
+.rdh{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid var(--ink);margin-top:14px;padding-bottom:4px;font-weight:700}
+.rj{display:grid;grid-template-columns:1fr auto auto;gap:4px 14px;padding:10px 0;border-bottom:1px solid var(--line)}
+.rname{font-weight:700}.radd,.rdt{color:var(--mute);font-size:.9rem}
+.rc{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.rc small{display:block;color:var(--mute);font-size:.68rem;text-transform:uppercase}
+.rc.pay{font-weight:700;color:var(--acc)}
+.rt{margin-top:22px;border-top:3px solid var(--ink);padding-top:8px}
+.rt div{display:flex;justify-content:space-between;padding:4px 0}.rt .big{font-weight:700;font-size:1.15rem}
+@media print{header,main,.rbar{display:none!important}#report{position:static;overflow:visible}.rwh{background:#fff;color:#000;border:2px solid #000}}
 .hide{display:none}
 </style>
 </head>
 <body>
-<header><h1>Window Job Tracker</h1><p>Scan tickets, review jobs, calculate pay, export your set &middot; Version 6</p></header>
+<header><h1>Window Job Tracker</h1><p>Scan tickets, review jobs, calculate pay, export your set &middot; Version 7</p></header>
 <main>
 
 <section class="card">
@@ -60,9 +77,12 @@ button.danger{background:#fff;color:#a32020;border-color:#e2b8b8}
 
 <section class="card">
 <h2>Manage your set</h2>
+<button id="snap">Save snapshot</button>
+<div id="snaps"></div>
 <div class="row"><button id="impBtn" class="alt">Import .txt set</button><button id="clear" class="danger">Clear current set</button></div>
 <input id="imp" type="file" accept=".txt,text/plain" class="hide">
-<p class="note">Import a set you exported earlier to edit it or use the extra-worker toggle without rescanning tickets.</p>
+<div id="status2" role="status"></div>
+<p class="note">Your jobs autosave on this phone as you work, and snapshots are kept here too. They live in this browser only, so export a .txt now and then as a backup. Importing a .txt opens the readable report.</p>
 </section>
 
 <section class="card">
@@ -80,10 +100,12 @@ button.danger{background:#fff;color:#a32020;border-color:#e2b8b8}
 
 <section class="card">
 <h2>3. Export your set</h2>
-<button id="export">Export .txt document</button>
+<div class="row" style="margin-top:0"><button id="viewRep" class="alt">View readable report</button><button id="export">Export .txt document</button></div>
 <p class="note">Creates a plain-text file with uppercase names, job details, daily, weekly and combined totals. The file name comes from your earliest and latest job dates.</p>
 </section>
 </main>
+
+<div id="report" class="hide"><div class="rbar"><button id="rclose" class="alt">Close</button><button id="rprint">Save as PDF / Print</button><button id="rcopy" class="alt">Copy text</button></div><div id="rbody"></div></div>
 
 <script>
 const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
@@ -135,8 +157,9 @@ function totals(){
  $('t1').textContent=show(a);$('t2').textContent=show(b);$('tc').textContent=show(a+b);
  $('count').textContent=jobs.length+(jobs.length===1?' job':' jobs');
  $('empty').classList.toggle('hide',jobs.length>0);
+ queueSave();
 }
-function setStatus(t,err){$('status').textContent=t;$('status').className=err?'err':''}
+function setStatus(t,err){for(const id of ['status','status2']){$(id).textContent=t;$(id).className=err?'err':''}}
 
 $('weeks').addEventListener('input',e=>{
  const f=e.target.dataset.f;if(!f||f==='w'||f==='d')return;
@@ -170,8 +193,8 @@ function setDest(w,d){$('weekDefault').value=w;$('dayDefault').value=d}
 $('extra').onchange=e=>{extra=e.target.checked;totals()};
 $('pick').onclick=()=>$('files').click();
 $('manual').onclick=()=>{const{w,d}=dest();addJob({w,d});render();setStatus('Blank job added to Week '+w+', '+DAYS[d]+'.')};
-$('clear').onclick=()=>{if(jobs.length&&confirm('Clear all jobs in this set? This cannot be undone.')){jobs=[];render();setStatus('')}};
-window.onbeforeunload=e=>{if(jobs.length){e.preventDefault();e.returnValue=''}};
+$('clear').onclick=()=>{if(jobs.length&&confirm('Clear all jobs in this set? The autosave is cleared too. Save a snapshot first if you want to keep this set.')){jobs=[];render();setStatus('')}};
+
 
 /* ---------- OCR ---------- */
 function loadOCR(){return window.Tesseract?Promise.resolve():new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';s.onload=ok;s.onerror=()=>no(new Error('load'));document.head.appendChild(s)})}
@@ -382,9 +405,90 @@ $('imp').onchange=async e=>{
   prev=l;
  }
  if(!out.length){setStatus('No jobs found in that file. Use a .txt exported from this page.',true);return}
- jobs=[];out.forEach(o=>addJob(o));render();setStatus('Imported '+out.length+' job(s). Commission is recalculated from each job price.');
+ jobs=[];out.forEach(o=>addJob(o));render();setStatus('Imported '+out.length+' job(s). Commission is recalculated from each job price.');openReport();
 };
-render();
+/* ---------- Readable report ---------- */
+const sumP=l=>l.reduce((a,j)=>a+cents(j.price),0);
+function rangeName(l){const v=l.map(j=>j.date).filter(validIso).sort();return v.length?(v[0]===v[v.length-1]?mdy(v[0]):mdy(v[0])+' to '+mdy(v[v.length-1])):'No dates'}
+function reportHTML(){
+ let h='<div class="rh"><h2>Job report</h2><div class="rs">'+esc(rangeName(jobs))+' &middot; '+jobs.length+' job'+(jobs.length===1?'':'s')+'</div></div>';
+ for(const w of [1,2]){
+  const wl=jobs.filter(j=>j.w===w);
+  h+='<section><div class="rwh"><span>Week '+w+'</span><span><small>Prices</small>'+money(sumP(wl))+'<small>Pay</small>'+money(sum(wl))+'</span></div>';
+  if(!wl.length)h+='<p class="note">No jobs</p>';
+  DAYS.forEach((d,i)=>{
+   const l=jobs.filter(j=>j.w===w&&j.d===i).sort((a,b)=>a.date.localeCompare(b.date));if(!l.length)return;
+   h+='<div class="rdh"><span>'+d+'</span><span><small>Prices</small>'+money(sumP(l))+'<small>Pay</small>'+money(sum(l))+'</span></div>';
+   l.forEach(j=>{h+='<div class="rj"><div><div class="rname">'+esc((j.name||'UNNAMED').toUpperCase())+'</div><div class="radd">'+esc(j.addr||'N/A')+'</div><div class="rdt">'+(validIso(j.date)?mdy(j.date):'N/A')+'</div></div><div class="rc"><small>Job price</small>'+money(cents(j.price))+'</div><div class="rc pay"><small>Your pay</small>'+money(comm(j))+'</div></div>'});
+  });
+  h+='</section>';
+ }
+ h+='<div class="rt">';
+ for(const w of [1,2]){const wl=jobs.filter(j=>j.w===w);h+='<div><span>Week '+w+'</span><span>Prices '+money(sumP(wl))+' &middot; Pay <b>'+money(sum(wl))+'</b></span></div>'}
+ h+='<div class="big"><span>Combined pay</span><span>'+money(sum(jobs))+'</span></div></div><p class="note">Pay is the single-worker commission. The additional-worker toggle never changes this report.</p>';
+ return h;
+}
+function openReport(){if(!jobs.length){setStatus('Add at least one job to see the report.',true);return}$('rbody').innerHTML=reportHTML();$('report').classList.remove('hide');$('report').scrollTop=0;document.body.style.overflow='hidden'}
+function closeReport(){$('report').classList.add('hide');document.body.style.overflow=''}
+$('viewRep').onclick=openReport;$('rclose').onclick=closeReport;$('rprint').onclick=()=>window.print();
+$('rcopy').onclick=async e=>{const b=e.target,o=b.textContent,ok=await copyText(build());b.textContent=ok?'Copied':'Failed';setTimeout(()=>b.textContent=o,1200)};
+
+/* ---------- Autosave + snapshots (this phone's browser only) ---------- */
+const KEY='wjt_current_v1',SNAPS='wjt_snaps_v1';
+let ready=false,storeOk=false,saveT=0;
+function store(){try{return window.localStorage}catch(_){return null}}
+function plain(j){return{name:j.name,date:j.date,addr:j.addr,price:j.price,w:j.w,d:j.d,chk:!!j.chk,na:j.na||null}}
+function sanitize(j){
+ if(!j||typeof j!=='object')return null;
+ const na=j.na&&typeof j.na==='object'?{name:!!j.na.name,addr:!!j.na.addr,price:!!j.na.price,date:!!j.na.date}:null;
+ return{id:++uid,name:String(j.name||'').slice(0,120),date:validIso(String(j.date||''))?j.date:'',addr:String(j.addr||'').slice(0,200),
+  price:isFinite(parseFloat(j.price))?String(j.price).slice(0,12):'',w:j.w===2?2:1,d:Math.min(6,Math.max(0,parseInt(j.d)||0)),chk:!!j.chk,na};
+}
+function persist(){
+ if(!ready||!storeOk)return;
+ try{const st=store();if(jobs.length)st.setItem(KEY,JSON.stringify({v:1,t:Date.now(),jobs:jobs.map(plain)}));else st.removeItem(KEY)}
+ catch(_){storeOk=false;setStatus('Autosave stopped: this browser would not store data. Export a .txt to keep your work.',true)}
+}
+function queueSave(){clearTimeout(saveT);saveT=setTimeout(persist,400)}
+function restore(){
+ const st=store();if(!st)return;
+ try{st.setItem('wjt_test','1');st.removeItem('wjt_test');storeOk=true}catch(_){return}
+ let raw=null;try{raw=st.getItem(KEY)}catch(_){}
+ if(!raw)return;
+ try{const o=JSON.parse(raw);if(!o||!Array.isArray(o.jobs))throw new Error('bad');
+  jobs=o.jobs.map(sanitize).filter(Boolean);
+  if(jobs.length)setStatus('Restored '+jobs.length+' job'+(jobs.length===1?'':'s')+' from your last autosave.');
+ }catch(_){jobs=[];try{st.setItem(KEY+'_bad',raw)}catch(_){}setStatus('Your saved data could not be read, so it was set aside untouched. You can start fresh or import a .txt.',true)}
+}
+function getSnaps(){const st=store();if(!st)return[];try{const a=JSON.parse(st.getItem(SNAPS)||'[]');return Array.isArray(a)?a:[]}catch(_){return[]}}
+function putSnaps(a){try{store().setItem(SNAPS,JSON.stringify(a));return true}catch(_){return false}}
+function renderSnaps(){
+ const a=getSnaps();
+ $('snaps').innerHTML=a.map(x=>'<div class="snap" data-sid="'+x.id+'"><div><b>'+esc(x.name)+'</b><div class="note" style="margin:0">'+x.jobs.length+' job'+(x.jobs.length===1?'':'s')+' &middot; pay '+money(sum(x.jobs))+' &middot; saved '+new Date(x.t).toLocaleDateString()+'</div></div><button class="alt" data-load>Load</button><button class="danger" data-dsnap>Delete</button></div>').join('');
+}
+$('snap').onclick=()=>{
+ if(!storeOk){setStatus('Snapshots need browser storage, which is unavailable here (Private Browsing?). Use Export .txt instead.',true);return}
+ if(!jobs.length){setStatus('Add jobs before saving a snapshot.',true);return}
+ const a=getSnaps();if(a.length>=30){setStatus('You have 30 snapshots. Delete one first.',true);return}
+ const name=prompt('Name this snapshot',rangeName(jobs));if(name===null)return;
+ a.unshift({id:Date.now(),name:name.trim().slice(0,60)||rangeName(jobs),t:Date.now(),jobs:jobs.map(plain)});
+ const ok=putSnaps(a);setStatus(ok?'Snapshot saved.':'Could not save the snapshot. Export a .txt instead.',!ok);renderSnaps();
+};
+$('snaps').onclick=e=>{
+ const b=e.target,row=b.closest('.snap');if(!row)return;
+ const a=getSnaps(),x=a.find(v=>v.id==row.dataset.sid);if(!x)return;
+ if(b.dataset.load!==undefined){
+  if(jobs.length&&!confirm('Replace the current jobs with "'+x.name+'"? Save a snapshot of the current set first if you want to keep it.'))return;
+  jobs=x.jobs.map(sanitize).filter(Boolean);render();setStatus('Loaded "'+x.name+'".');
+ }else if(b.dataset.dsnap!==undefined){if(confirm('Delete snapshot "'+x.name+'"?')){putSnaps(a.filter(v=>v.id!=x.id));renderSnaps()}}
+};
+/*INIT*/
+restore();renderSnaps();
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(_){}
+ready=true;render();
+window.onbeforeunload=e=>{if(jobs.length&&!storeOk){e.preventDefault();e.returnValue=''}};
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')persist()});
+window.addEventListener('pagehide',persist);
 </script>
 </body>
 </html>
