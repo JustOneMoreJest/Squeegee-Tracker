@@ -35,11 +35,15 @@ button.danger{background:#fff;color:#a32020;border-color:#e2b8b8}
 .tog{display:flex;align-items:center;gap:10px;margin-top:10px}.tog input{width:24px;min-height:24px;height:24px}
 #status{margin-top:8px;font-size:.9rem;color:var(--acc)}#status.err{color:#a32020}
 #empty{color:var(--mute);padding:8px 0}
+.cp{border:1px solid var(--line);border-radius:8px;background:#fff}
+.cp summary{padding:8px 12px;font-size:.85rem;color:var(--acc);font-weight:600;cursor:pointer}
+.cpr{display:flex;flex-wrap:wrap;gap:6px;padding:0 8px 8px}
+.cpr button{width:auto;flex:1;min-height:36px;padding:4px 8px;font-size:.85rem}
 .hide{display:none}
 </style>
 </head>
 <body>
-<header><h1>Window Job Tracker</h1><p>Scan tickets, review jobs, calculate pay, export your set</p></header>
+<header><h1>Window Job Tracker</h1><p>Scan tickets, review jobs, calculate pay, export your set &middot; Version 6</p></header>
 <main>
 
 <section class="card">
@@ -111,7 +115,8 @@ function jobHTML(j){
  <div class="row" style="margin:0"><input class="${na('date')}" type="date" data-f="date" value="${esc(j.date)}"><input class="${na('price')}" data-f="price" inputmode="decimal" placeholder="${ph('price','Job price')}" value="${esc(j.price)}"></div>
  <input class="${na('addr')}" data-f="addr" placeholder="${ph('addr','Address')}" value="${esc(j.addr)}">
  <div class="row" style="margin:0"><select data-f="w">${wo}</select><select data-f="d">${dopt}</select></div>
- <div class="row" style="margin:0;align-items:center"><button class="danger" data-del>Delete</button><div class="pay">Commission <b>${money(comm(j))}</b></div></div></div>`;
+ <div class="row" style="margin:0;align-items:center"><button class="danger" data-del>Delete</button><div class="pay">Commission <b>${money(comm(j))}</b></div></div>
+ <details class="cp"><summary>Copy</summary><div class="cpr"><button class="alt" data-cp="all">All</button><button class="alt" data-cp="name">Name</button><button class="alt" data-cp="date">Date</button><button class="alt" data-cp="addr">Address</button><button class="alt" data-cp="price">Price</button><button class="alt" data-cp="pay">Pay</button></div></details></div>`;
 }
 const sum=l=>l.reduce((a,j)=>a+comm(j),0);
 const show=c=>money(c*(extra?2:1));
@@ -145,9 +150,19 @@ $('weeks').addEventListener('change',e=>{
  const f=e.target.dataset.f;if(f!=='w'&&f!=='d')return;
  jobs.find(x=>x.id==e.target.closest('.job').dataset.id)[f]=+e.target.value;render();
 });
-$('weeks').addEventListener('click',e=>{
+function jobText(j,part){
+ const dt=validIso(j.date)?mdy(j.date):'N/A';
+ return {all:[(j.name||'UNNAMED').toUpperCase(),'Date: '+dt,'Address: '+(j.addr||'N/A'),'Job price: '+money(cents(j.price)),'Commission pay: '+money(comm(j))].join('\n'),
+  name:j.name||'',date:dt,addr:j.addr||'',price:(cents(j.price)/100).toFixed(2),pay:(comm(j)/100).toFixed(2)}[part];
+}
+async function copyText(t){
+ try{await navigator.clipboard.writeText(t);return true}
+ catch(_){const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}a.remove();return ok}
+}
+$('weeks').addEventListener('click',async e=>{
  const t=e.target;
  if(t.dataset.del!==undefined){if(confirm('Delete this job?')){jobs=jobs.filter(x=>x.id!=t.closest('.job').dataset.id);render()}}
+ else if(t.dataset.cp){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id),o=t.textContent,ok=await copyText(jobText(j,t.dataset.cp));t.textContent=ok?'Copied':'Failed';setTimeout(()=>t.textContent=o,1200)}
  else if(t.dataset.photos){const[w,d]=t.dataset.photos.split('-');setDest(+w,+d);$('files').click()}
  else if(t.dataset.add){const[w,d]=t.dataset.add.split('-');setDest(+w,+d);addJob({w:+w,d:+d});render()}
 });
@@ -204,14 +219,19 @@ function lev(a,b){a=a.toLowerCase();b=b.toLowerCase();const m=a.length,n=b.lengt
  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
  return d[m][n]}
 const sameLoc=(a,b)=>!!a&&!!b&&lev(a,b)<=Math.max(1,Math.floor(Math.max(a.length,b.length)/4));
-// city part: remove zip codes (any 5-digit number), state abbreviations and stray single letters
-function cleanCity(s){
- return s.replace(/\b\d{5}(-\d{4})?\b/g,' ')
-  .replace(/\bF[LlI1]\b\.?/g,' ')
-  .replace(/\b[A-Z]{2}\b/g,m=>STATES.includes(m)?' ':m)
-  .replace(/[^A-Za-z .'-]/g,' ').replace(/\b[a-z]\b/g,' ')
-  .replace(/[,;:|]+/g,' ').replace(/\s+/g,' ').trim();
+// city = the leading run of plain words on a line; stops at a zip, state, symbol or the phone/office text
+function cityOf(line){
+ line=line.split(/\b(?:office|home|cell|amount\s*due|amountdue|estimates?)\b/i)[0];
+ const out=[];
+ for(const x of line.replace(/[,;:|]+/g,' ').split(/\s+/).filter(Boolean)){
+  if(/[^A-Za-z.'-]/.test(x))break;
+  if(STATES.includes(x)||/^F[LlI1]\.?$/.test(x))break;
+  out.push(x);
+ }
+ if(out.some(x=>/^[A-Z][a-z]/.test(x)))while(out.length>1&&/^[A-Z]{2,4}$/.test(out[out.length-1]))out.pop();  // misread state like "PLE"
+ return out.slice(0,4).join(' ').replace(/\b[a-z]\b/g,' ').replace(/\s+/g,' ').trim();
 }
+function cityFrom(lines){for(const l of lines){const c=cityOf(l);if(/[A-Za-z]{3}/.test(c))return c}return ''}
 // a clipped word at the end of one fragment that is the start of the next ("Kl" then "Kitchen")
 function dropStub(a,b){
  const aw=a.split(' '),w=aw[aw.length-1],v=(b.split(' ')[0]||'');
@@ -273,7 +293,7 @@ function parseTicket(t,data){
  const rest=k>=0?block.slice(k+1):block.slice(1);
  let streetLine=k>=0?block[k]:'';
  if(streetLine){const tk=streetLine.split(' ');streetLine=(tk[0]+' '+tk.slice(1).join(' ').replace(/\b\d{5}(-\d{4})?\b/g,' ').replace(/\bF[LlI1]\b\.?/g,' ').replace(/[^A-Za-z0-9 .'#\/-]/g,' ').replace(/\s+/g,' ')).trim()}
- const city=cleanCity(rest.join(' '));
+ const city=cityFrom(rest);
  const cityOk=/[A-Za-z]{3}/.test(city)?city:'';
  const addr=[streetLine,cityOk].filter(Boolean).join(', ');
  if(addr)r.addr=addr;
@@ -291,9 +311,9 @@ function parseTicket(t,data){
   parts=parts.filter(x=>!sameLoc(x,cityOk));
  }
  let name=parts.join(' - ');
- if(cityOk&&parts.length===1){                       // no dash: strip a trailing city that repeats the address
-  const w=name.split(' ');
-  for(let n=Math.min(4,w.length-1);n>=1;n--){if(sameLoc(w.slice(-n).join(' '),cityOk)){name=w.slice(0,-n).join(' ');break}}
+ if(cityOk&&parts.length===1){                       // no dash: strip trailing city words that repeat the address (even twice)
+  for(let again=true;again;){again=false;const w=name.split(' ');
+   for(let n=Math.min(4,w.length-1);n>=1;n--){if(sameLoc(w.slice(-n).join(' '),cityOk)){name=w.slice(0,-n).join(' ');again=true;break}}}
  }
  name=cleanName(name);
  if(name)r.name=name;
