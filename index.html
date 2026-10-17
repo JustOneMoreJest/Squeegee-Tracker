@@ -68,7 +68,7 @@ details.bank summary{font-weight:600;cursor:pointer;min-height:36px}
 </style>
 </head>
 <body>
-<header><h1>Window Job Tracker</h1><p>Scan tickets, review jobs, calculate pay, export your set &middot; Version 13</p></header>
+<header><h1>Window Job Tracker</h1><p>Scan tickets, review jobs, calculate pay, export your set &middot; Version 14</p></header>
 <main>
 
 <section class="card">
@@ -236,7 +236,7 @@ $('weeks').addEventListener('click',async e=>{
  else if(t.dataset.addst!==undefined){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id);j.showStore=true;render()}
  else if(t.dataset.addx!==undefined){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id);j.showExtra=true;render()}
  else if(t.dataset.sgyes!==undefined){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id),b=getBank().find(x=>x.id===j.sg);
-  if(b){j.name=b.name;j.addr=b.addr;if(b.store&&!j.store)j.store=b.store;if(j.na){j.na.name=false;j.na.addr=false}j.sg=null;render()}}
+  if(b){j.name=b.name;j.addr=b.addr;if(b.store)j.store=b.store;if(j.na){j.na.name=false;j.na.addr=false}j.sg=null;render()}}
  else if(t.dataset.sgsave!==undefined){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id),msg=saveToBank(j);j.offerSave=false;t.closest('.sg').innerHTML='<div class="note">'+(msg==='Saved'||msg==='Updated'?esc(msg)+' in the job bank.':esc(msg))+'</div>'}
  else if(t.dataset.sgskip!==undefined){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id);j.offerSave=false;j.nosave=true;t.closest('.sg').innerHTML=''}
  else if(t.dataset.sgno!==undefined){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id);j.sg=null;j.nosg=true;t.closest('.sg').innerHTML=''}
@@ -332,7 +332,7 @@ function pickCity(a,b){
 const isStreet=l=>/^(?=\S*\d)[0-9OoIlSZB]{1,6}\s+[A-Za-z]{2}/.test(l)&&!/\$/.test(l)&&!/\(\d{3}\)/.test(l);
 // street line: drop zip/state, and cut off junk glued on from the next column of the ticket
 function tidyStreet(l){
- const s=l.replace(/\b\d{5}(-\d{4})?\b/g,(m,g,off)=>off===0?m:' ').replace(/\bF[LlI1]\b\.?/g,' ').replace(/[^A-Za-z0-9 .'#\/,-]/g,' ').replace(/\s+/g,' ').trim();
+ const s=l.replace(/\bB[liI1|]vd\b/g,'Blvd').replace(/\b\d{5}(-\d{4})?\b/g,(m,g,off)=>off===0?m:' ').replace(/\bF[LlI1]\b\.?/g,' ').replace(/[^A-Za-z0-9 .'#\/,-]/g,' ').replace(/\s+/g,' ').trim();
  const tk=s.split(' '),SUF=/^(st|street|ave|avenue|rd|road|dr|drive|blvd|boulevard|ln|lane|ct|court|way|pl|place|pkwy|parkway|hwy|highway|cir|circle|trl|trail|ter|terrace|loop|sq|square|us-?\d+|fl-?\d+)[.,]?$/i;
  const HWY=/^(road|rd|highway|hwy|route|rt|us-?\d*|fl-?\d*|sr|cr|pkwy|parkway)[.,]?$/i;
  const e=tk.findIndex((x,i)=>i>0&&SUF.test(x));
@@ -346,19 +346,44 @@ function tidyStreet(l){
  }
  return out.replace(/[ ,]+$/,'');
 }
+// Budget form by position: the rows of text right of "Location Address", and the number beside "Store #"
+function geoBudget(data){
+ const ws=lineWords(data).filter(w=>w.bbox);if(!ws.length)return null;
+ const yc=w=>(w.bbox.y0+w.bbox.y1)/2,hh=w=>w.bbox.y1-w.bbox.y0;
+ const adr=ws.find(w=>/^addr(ess)?\W*$/i.test(w.text)&&ws.some(v=>v!==w&&/^locat/i.test(v.text)&&v.bbox.x1<=w.bbox.x0+8&&Math.abs(yc(v)-yc(w))<hh(w)));
+ if(!adr)return null;
+ const h=hh(adr),res={rows:[]};
+ const cand=ws.filter(w=>w!==adr&&w.bbox.x0>=adr.bbox.x1-6&&w.bbox.y0>=adr.bbox.y0-.8*h&&w.bbox.y0<=adr.bbox.y0+9*h).sort((a,b)=>yc(a)-yc(b));
+ const rows=[];
+ for(const w of cand){const r=rows[rows.length-1],g=hh(w);
+  if(r&&Math.abs(yc(w)-r.y)<=Math.max(g,r.h)*.6){r.w.push(w);r.y=(r.y*(r.w.length-1)+yc(w))/r.w.length;r.h=Math.max(r.h,g)}else rows.push({w:[w],y:yc(w),h:g})}
+ res.rows=rows.map(r=>r.w.sort((a,b)=>a.bbox.x0-b.bbox.x0).map(w=>w.text).join(' '));
+ const stw=ws.filter(w=>/^store\W*$/i.test(w.text)&&w.confidence>=30).sort((a,b)=>a.bbox.y0-b.bbox.y0)[0];
+ if(stw){const sh=hh(stw),nums=ws.filter(w=>w!==stw&&/\d{3,6}/.test(w.text)&&w.bbox.x0>=stw.bbox.x1-6&&Math.abs(yc(w)-yc(stw))<=1.3*Math.max(sh,hh(w))).sort((a,b)=>a.bbox.x0-b.bbox.x0);
+  if(nums.length)res.store=nums[0].text.match(/\d{3,6}/)[0]}
+ return res;
+}
 // layouts that don't look like the usual invoice
-function parseForm(t){
+function parseForm(t,data){
  const L=t.split(/\n/).map(x=>x.replace(/\s+/g,' ').trim()).filter(Boolean),r={};
  const done=()=>{const d=findDate(t,true);if(d)r.date=d;const pr=findPrice(L,t);if(pr)r.price=pr;return r};
  let i;
- // Budget Maintenance "Bundled Service Invoice": Store #, then Location Address with name, street, city
- if((i=L.findIndex(l=>/location\s+address/i.test(l)))>=0){
-  const first=L[i].replace(/^.*?location\s+address\s*[:;.]?\s*/i,'').trim(),blk=[];
-  for(const l of [first,...L.slice(i+1,i+6)].filter(Boolean)){if(/clean outside|manager|store stamp|comments|^date/i.test(l))break;blk.push(l)}
-  const k=blk.findIndex(isStreet),nm=cleanName(k>0?blk.slice(0,k).join(' '):(blk[0]||''));
+ // Budget Maintenance "Bundled Service Invoice": Store #, then Location Address with name, street, city.
+ // Read by position first (the box to the right of "Location Address"), so it works whatever order the scanner returns the lines in.
+ const geo=data?geoBudget(data):null;
+ if(geo||(i=L.findIndex(l=>/location\s+address/i.test(l)))>=0){
+  let blk=[];
+  if(geo&&geo.rows.some(isStreet)){for(const l of geo.rows){if(/clean outside|manager|store stamp|comments/i.test(l))break;blk.push(l)}}
+  else if(i>=0){
+   const first=L[i].replace(/^.*?location\s+address\s*[:;.]?\s*/i,'').trim();
+   for(const l of [first,...L.slice(i+1,i+6)].filter(Boolean)){if(/clean outside|manager|store stamp|comments|^date/i.test(l))break;blk.push(l)}
+  }
+  const k=blk.findIndex(isStreet),nm=cleanName(k>0?blk.slice(0,k).join(' '):(blk[0]&&k!==0?blk[0]:''));
   if(nm)r.name=nm;
   if(k>=0){const c=cityFrom(blk.slice(k+1));r.addr=[tidyStreet(blk[k]),c].filter(Boolean).join(', ')}
-  const sm=t.match(/store\s*(?:#|no\.?|number)[ \t]*[:.#_ -]*(\d{1,6})\b/i);if(sm)r.store=sm[1];
+  let sn=geo&&geo.store;
+  if(!sn){const sm=t.match(/store\s*(?:#|no\.?|number)[ \t]*[:.#_ -]*(\d{1,6})\b/i);if(sm)sn=sm[1]}
+  if(sn)r.store=sn;
   return done();
  }
  // Ellis "Work Ticket": Location Information box = "Name #store - City", extra line, street, city/state/zip
@@ -452,7 +477,7 @@ function parseTicket(t,data,crop){
 }
 function parseCore(t,data,crop){
  t=t.replace(/[\u2018\u2019\u201B\u2032\u00B4`]/g,"'").replace(/'{2,}/g,"'");
- const fm=parseForm(t);if(fm)return fm;
+ const fm=parseForm(t,data);if(fm)return fm;
  const r={};
  const sm=t.match(/store\s*(?:#|no\.?|number)[ \t]*[:.#_ -]*(\d{1,6})\b(?!\s+[A-Za-z])/i);if(sm)r.store=sm[1];
  r.date=findDate(t);
@@ -754,9 +779,10 @@ function bestMatch(j){
  const sj=norm(j.store),cands=[],weak=!/\d/.test(String(j.addr||''));      // weak = no street number was read at all
  for(const e of getBank()){
   const se=norm(e.store);
-  if(sj&&se&&sj!==se)continue;                                               // different store number = different location
-  if(norm(e.name)===norm(j.name)&&norm(e.addr)===norm(j.addr))return null;   // already exactly a saved job
-  const same=sj&&se&&sj===se,ns=sim(j.name,e.name),as=sim(j.addr,e.addr),ss=sim(streetOf(j.addr),streetOf(e.addr));
+  const near=!!(sj&&se&&sj!==se&&lev(sj,se)<=1&&sim(j.name,e.name)>=.75&&sim(streetOf(j.addr),streetOf(e.addr))>=.85);   // one digit misread
+  if(sj&&se&&sj!==se&&!near)continue;                                        // different store number = different location
+  if(norm(e.name)===norm(j.name)&&norm(e.addr)===norm(j.addr)&&(!sj||!se||sj===se))return null;   // already exactly a saved job
+  const same=(sj&&se&&sj===se)||near,ns=sim(j.name,e.name),as=sim(j.addr,e.addr),ss=sim(streetOf(j.addr),streetOf(e.addr));
   const cj=cityOfAddr(j.addr),ce=cityOfAddr(e.addr),both=/\d/.test(j.addr||'')&&/\d/.test(e.addr||'');
   if(!same&&both&&ss<.6)continue;                                            // clearly a different street = a different location
   if(cj&&ce&&sim(cj,ce)<.8&&ss<.85)continue;                                 // different town (unless the street matches: the town is just misread)
