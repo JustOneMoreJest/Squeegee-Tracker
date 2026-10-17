@@ -68,7 +68,7 @@ details.bank summary{font-weight:600;cursor:pointer;min-height:36px}
 </style>
 </head>
 <body>
-<header><h1>Window Job Tracker</h1><p>Scan tickets, review jobs, calculate pay, export your set &middot; Version 10</p></header>
+<header><h1>Window Job Tracker</h1><p>Scan tickets, review jobs, calculate pay, export your set &middot; Version 12</p></header>
 <main>
 
 <section class="card">
@@ -77,6 +77,8 @@ details.bank summary{font-weight:600;cursor:pointer;min-height:36px}
 <select id="weekDefault" aria-label="New jobs go into"><option value="1">Week 1</option><option value="2">Week 2</option></select>
 <select id="dayDefault" aria-label="Weekday"></select>
 </div>
+<label class="note" for="batchDate" style="display:block;margin:10px 0 2px">Ticket date (fills in when a date can't be read)</label>
+<input id="batchDate" type="date">
 <div class="row"><button id="pick">Choose ticket photos</button><button id="manual" class="alt">Add job manually</button></div>
 <input id="files" type="file" accept="image/*" multiple class="hide">
 <div id="status" role="status"></div>
@@ -147,6 +149,7 @@ const cents=v=>Math.round((parseFloat(v)||0)*100);
 const full=j=>cents(j.price)+cents(j.extra);   // price in full = price + optional second price
 const comm=j=>Math.round(full(j)*15/100); // each job rounded to the cent
 const money=c=>'$'+(c/100).toFixed(2);
+const priceLine=j=>(!String(j.price||'').trim()&&!cents(j.extra))?'N/A':priceTxt(j);
 const priceTxt=j=>{const e=cents(j.extra);return money(full(j))+(e?' ('+(cents(j.price)/100).toFixed(2)+' + '+(e/100).toFixed(2)+')':'')};
 const validIso=s=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const d=new Date(s+'T00:00:00');return !isNaN(d)&&d.toISOString().slice(0,10)===s};
 const mdy=s=>s.slice(5,7)+'-'+s.slice(8,10)+'-'+s.slice(2,4);
@@ -211,13 +214,15 @@ $('weeks').addEventListener('change',e=>{
  if(tg.dataset.sel!==undefined){const id=+tg.closest('.job').dataset.id;tg.checked?sel.add(id):sel.delete(id);updateSel();return}
  const f=e.target.dataset.f;
  if(f==='name'||f==='addr'){const card=tg.closest('.job'),j=jobs.find(x=>x.id==card.dataset.id);
-  if(!j.nosg&&getBank().length){const m=bestMatch(j);j.sg=m?m.id:null;card.querySelector('.sg').innerHTML=sgHTML(j)}return}
+  if(!j.nosg&&getBank().length){const m=bestMatch(j);j.sg=m?m.id:null}
+  j.offerSave=!j.sg&&!j.nosave&&!!j.scanned&&!!j.name.trim()&&!!j.addr.trim()&&!inBank(j);
+  card.querySelector('.sg').innerHTML=sgHTML(j);return}
  if(f!=='w'&&f!=='d')return;
  jobs.find(x=>x.id==e.target.closest('.job').dataset.id)[f]=+e.target.value;render();
 });
 function jobText(j,part){
  const dt=validIso(j.date)?mdy(j.date):'N/A';
- return {all:[(j.name||'UNNAMED').toUpperCase(),'Date: '+dt,'Address: '+(j.addr||'N/A'),...(j.store?['Store #: '+j.store]:[]),'Job price: '+priceTxt(j),'Commission pay: '+money(comm(j))].join('\n'),
+ return {all:[(j.name||'UNNAMED').toUpperCase(),'Date: '+dt,'Address: '+(j.addr||'N/A'),...(j.store?['Store #: '+j.store]:[]),'Job price: '+priceLine(j),'Commission pay: '+money(comm(j))].join('\n'),
   name:j.name||'',date:dt,addr:j.addr||'',price:(full(j)/100).toFixed(2),pay:(comm(j)/100).toFixed(2)}[part];
 }
 async function copyText(t){
@@ -232,6 +237,8 @@ $('weeks').addEventListener('click',async e=>{
  else if(t.dataset.addx!==undefined){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id);j.showExtra=true;render()}
  else if(t.dataset.sgyes!==undefined){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id),b=getBank().find(x=>x.id===j.sg);
   if(b){j.name=b.name;j.addr=b.addr;if(b.store&&!j.store)j.store=b.store;if(j.na){j.na.name=false;j.na.addr=false}j.sg=null;render()}}
+ else if(t.dataset.sgsave!==undefined){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id),msg=saveToBank(j);j.offerSave=false;t.closest('.sg').innerHTML='<div class="note">'+(msg==='Saved'||msg==='Updated'?esc(msg)+' in the job bank.':esc(msg))+'</div>'}
+ else if(t.dataset.sgskip!==undefined){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id);j.offerSave=false;j.nosave=true;t.closest('.sg').innerHTML=''}
  else if(t.dataset.sgno!==undefined){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id);j.sg=null;j.nosg=true;t.closest('.sg').innerHTML=''}
  else if(t.dataset.bank!==undefined){const j=jobs.find(x=>x.id==t.closest('.job').dataset.id),o=t.textContent,msg=saveToBank(j);t.textContent=msg;setTimeout(()=>t.textContent=o,1600)}
  else if(t.dataset.photos){const[w,d]=t.dataset.photos.split('-');setDest(+w,+d);$('files').click()}
@@ -277,13 +284,15 @@ function findDate(t,strict){
  return '';
 }
 function cleanName(n){
- const w=n.replace(/\((?:r|c|tm)\)/gi,' ').replace(/[^A-Za-z0-9&'.,\- ]/g,' ').replace(/\s+/g,' ').trim().split(' ').filter(Boolean);
- const keep=x=>x.length>1||/^[AaIi&]$/.test(x);          // stray single letters/symbols at the edges are junk
- while(w.length>1&&!keep(w[0]))w.shift();
+ const w=n.replace(/[\u2018\u2019\u201B\u2032\u00B4`]/g,"'").replace(/'{2,}/g,"'").replace(/\((?:r|c|tm)\)/gi,' ')
+  .replace(/[^A-Za-z0-9&'.,\- ]/g,' ').replace(/\s+/g,' ').trim().split(' ').filter(Boolean);
+ const keep=x=>x.length>1||/^[AaIi&]$/.test(x),stray=x=>/^[a-z]{1,2}[.,:]?$/.test(x);   // leftovers from the logo column: "le", "iw"
+ while(w.length>1&&(!keep(w[0])||stray(w[0])))w.shift();
  while(w.length>1&&!keep(w[w.length-1]))w.pop();
  return w.join(' ').replace(/^[-.,\s]+|[-.,\s]+$/g,'');
 }
 const STATES='AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC'.split(' ');
+const LOGO=new Set(['WINDOW','WINDOWS','CLEANING','FISH','WIND']);
 const fuzzy=s=>s.toLowerCase().replace(/[l1|!]/g,'i').replace(/0/g,'o');
 const rxEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 function lev(a,b){a=a.toLowerCase();b=b.toLowerCase();const m=a.length,n=b.length,d=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);
@@ -291,36 +300,51 @@ function lev(a,b){a=a.toLowerCase();b=b.toLowerCase();const m=a.length,n=b.lengt
  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
  return d[m][n]}
 const sameLoc=(a,b)=>!!a&&!!b&&lev(a,b)<=Math.max(1,Math.floor(Math.max(a.length,b.length)/4));
-// city = the leading run of plain words on a line; stops at a zip, state, symbol or the phone/office text
+// city = the leading run of plain words on a line; skips (R)-style marks, drops logo words and stray bits, stops at a zip, state, digit or the phone text
 function cityOf(line){
  line=line.split(/\b(?:office|home|cell|amount\s*due|amountdue|estimates?)\b/i)[0];
- const out=[];
+ let out=[];
  for(const x of line.replace(/[,;:|]+/g,' ').split(/\s+/).filter(Boolean)){
+  if(/^[\u00ae\u00a9\u2122*\u00b0\u2022\u00b7()]+$/.test(x))continue;
   if(/[^A-Za-z.'-]/.test(x))break;
   if(STATES.includes(x)||/^F[LlI1]\.?$/.test(x))break;
   out.push(x);
  }
- if(out.some(x=>/^[A-Z][a-z]/.test(x)))while(out.length>1&&/^[A-Z]{2,4}$/.test(out[out.length-1]))out.pop();  // misread state like "PLE"
+ out=out.filter(x=>!LOGO.has(x.toUpperCase())&&!/^[a-z]{1,2}$/.test(x));
+ if(out.some(x=>/^[A-Z][a-z]/.test(x)))out=out.filter(x=>!/^[A-Z]{2,}$/.test(x)||out.length===1);
  return out.slice(0,4).join(' ').replace(/\b[a-z]\b/g,' ').replace(/\s+/g,' ').trim();
 }
 function cityFrom(lines){
- const z=lines.filter(l=>/\b\d{5}\b/.test(l));              // prefer the line that has the full zip
+ const z=lines.filter(l=>/\b\d{5}\b/.test(l));
  for(const l of [...z,...lines]){const c=cityOf(l);if(/[A-Za-z]{3}/.test(c))return c}return '';
+}
+// the town is printed twice ("Name - Largo" and the address block): trust whichever one reads cleanly, preferring a town you already know
+function pickCity(a,b){
+ const ok=x=>/^[A-Za-z][A-Za-z .'-]{3,}$/.test(x||'');
+ if(ok(a)&&ok(b)){
+  if(sameLoc(a,b))return a.length>=b.length?a:b;
+  let known=new Set();try{known=new Set([...getBank().map(x=>cityOfAddr(x.addr)),...jobs.map(j=>cityOfAddr(j.addr))].filter(Boolean))}catch(_){}
+  const ka=known.has(norm(a)),kb=known.has(norm(b));
+  return ka!==kb?(ka?a:b):a;      // the address block wins ties: "BJ's - Huntington Beach" can be a different town than the street
+ }
+ return ok(a)?a:ok(b)?b:'';
 }
 const isStreet=l=>/^(?=\S*\d)[0-9OoIlSZB]{1,6}\s+[A-Za-z]{2}/.test(l)&&!/\$/.test(l)&&!/\(\d{3}\)/.test(l);
 // street line: drop zip/state, and cut off junk glued on from the next column of the ticket
 function tidyStreet(l){
- let s=l.replace(/\b\d{5}(-\d{4})?\b/g,(m,g,off)=>off===0?m:' ').replace(/\bF[LlI1]\b\.?/g,' ').replace(/[^A-Za-z0-9 .'#\/,-]/g,' ').replace(/\s+/g,' ').trim();
+ const s=l.replace(/\b\d{5}(-\d{4})?\b/g,(m,g,off)=>off===0?m:' ').replace(/\bF[LlI1]\b\.?/g,' ').replace(/[^A-Za-z0-9 .'#\/,-]/g,' ').replace(/\s+/g,' ').trim();
  const tk=s.split(' '),SUF=/^(st|street|ave|avenue|rd|road|dr|drive|blvd|boulevard|ln|lane|ct|court|way|pl|place|pkwy|parkway|hwy|highway|cir|circle|trl|trail|ter|terrace|loop|sq|square|us-?\d+|fl-?\d+)[.,]?$/i;
+ const HWY=/^(road|rd|highway|hwy|route|rt|us-?\d*|fl-?\d*|sr|cr|pkwy|parkway)[.,]?$/i;
  const e=tk.findIndex((x,i)=>i>0&&SUF.test(x));
+ let out=s;
  if(e>=0){
-  let j=e+1;
+  const hw=HWY.test(tk[e]);let j=e+1;
   while(j<tk.length){const x=tk[j],pv=tk[j-1];
-   if(/^(\d{1,5}|N|S|E|W|NE|NW|SE|SW|North|South|East|West|[A-Z])[.,]?$/.test(x)||/^(Ste|Suite|Unit|Apt|Bldg|Building)\.?,?$/i.test(x)||/^#\S+$/.test(x)||(/^(ste|suite|unit|apt|bldg|#)\.?$/i.test(pv)&&/^[A-Za-z0-9-]{1,6},?$/.test(x)))j++;else break;
+   if((hw&&/^\d{1,4}[A-Za-z]?[.,]?$/.test(x))||/^(N|S|E|W|NE|NW|SE|SW|North|South|East|West|[A-Z])[.,]?$/.test(x)||/^(Ste|Suite|Unit|Apt|Bldg|Building)\.?,?$/i.test(x)||/^#\S+$/.test(x)||(/^(ste|suite|unit|apt|bldg|#)\.?$/i.test(pv)&&/^[A-Za-z0-9-]{1,6},?$/.test(x)))j++;else break;
   }
-  if(tk.slice(j).some(x=>/^[a-z]{1,3}$/.test(x)||/^\d{5,}$/.test(x)))s=tk.slice(0,j).join(' ');
+  if(tk.slice(j).some(x=>/^[a-z]{1,3}$/.test(x)||/^\d+$/.test(x)))out=tk.slice(0,j).join(' ');
  }
- return s.replace(/[ ,]+$/,'');
+ return out.replace(/[ ,]+$/,'');
 }
 // layouts that don't look like the usual invoice
 function parseForm(t){
@@ -346,13 +370,8 @@ function parseForm(t){
   if(k>=0){const c=cityFrom(blk.slice(k+1));r.addr=[tidyStreet(blk[k]),c].filter(Boolean).join(', ')}
   return done();                                             // only the labelled "Date:" counts, never the Scheduled date
  }
- // Elite "Construction Clean Sign-Off Form": handwritten Customer / Location, nothing else printed
- if(/construction\s+clean|sign-?off\s+form/i.test(t)){
-  const g=lab=>{const l=L.find(x=>new RegExp(lab+'\\s*[:;]','i').test(x));return l?cleanName(l.replace(new RegExp('^.*?'+lab+'\\s*[:;]\\s*','i'),'')):''};
-  const v=g('location')||g('customer');
-  if(/[A-Za-z]{4}/.test(v)&&!/^(elite|customer|location)$/i.test(v))r.name=v;
-  return done();
- }
+ // Elite "Construction Clean Sign-Off Form": handwriting only, so nothing is guessed
+ if(/construction\s+clean|sign-?off\s+form/i.test(t))return done();
  return null;
 }
 // a clipped word at the end of one fragment that is the start of the next ("Kl" then "Kitchen")
@@ -362,33 +381,57 @@ function dropStub(a,b){
  return aw.join(' ');
 }
 function findPrice(L,T){
- const amt=s=>{const m=[...s.matchAll(/(\d{1,5}(?:,\d{3})*\.\d{2})/g)];return m.length?parseFloat(m[m.length-1][1].replace(/,/g,'')):NaN};
- const nums=[...T.matchAll(/(\d{1,5}(?:,\d{3})*\.\d{2})/g)].map(m=>parseFloat(m[1].replace(/,/g,'')));
- let tri=null;
- for(let i=nums.length-3;i>=0;i--)if(Math.abs(nums[i]+nums[i+1]-nums[i+2])<0.02&&nums[i]>0){tri={x:nums[i],z:nums[i+2]};break}
+ const num=x=>parseFloat(x.replace(/,/g,'')),AMT=/(\d{1,5}(?:,\d{3})*\.\d{2})/g;
+ const amts=x=>[...x.matchAll(AMT)].map(m=>num(m[1]));
+ const nums=amts(T);
+ // Subtotal + Sales Tax = Total: the three numbers check each other, so find them even when labels or lines are mangled
+ for(let i=nums.length-3;i>=0;i--)if(Math.abs(nums[i]+nums[i+1]-nums[i+2])<0.02&&nums[i]>0)return nums[i].toFixed(2);
  let v=NaN;
  const si=L.findIndex(l=>/s[uo][bh6]\s*-?\s*t[o0]t|subt/i.test(l));
- if(si>=0)v=amt(L[si]);if(si>=0&&isNaN(v))v=amt(L[si+1]||'');
- if(tri&&(isNaN(v)||v===tri.z))v=tri.x;                       // label read, but it grabbed the Total
+ if(si>=0){const a=amts(L[si]);if(a.length)v=a[a.length-1];else{const nx=L[si+1]||'';if(!/sales|tax|total/i.test(nx)){const b=amts(nx);if(b.length)v=b[0]}}}
  if(isNaN(v)){                                                 // Total minus Sales Tax
   const ti=L.findIndex(l=>/sales\s*tax|\btax\b/i.test(l)),to=L.findIndex(l=>/\btotal\b/i.test(l)&&!/sub/i.test(l));
-  if(ti>=0&&to>=0){const tx=amt(L[ti]),tt=amt(L[to]);if(!isNaN(tx)&&!isNaN(tt))v=Math.round((tt-tx)*100)/100}
+  if(ti>=0&&to>=0){const tx=amts(L[ti]),tt=amts(L[to]);if(tx.length&&tt.length)v=Math.round((tt[tt.length-1]-tx[tx.length-1])*100)/100}
+ }
+ if(isNaN(v)){                                                 // the job line itself: "Window Cleaning I/O - $45.00"
+  const dl=L.find(l=>/cleaning|window|wash/i.test(l)&&/\$\s?\d/.test(l));
+  if(dl){const a=[...dl.matchAll(/\$\s?(\d{1,5}(?:,\d{3})*(?:\.\d{2})?)/g)];if(a.length)v=num(a[0][1])}
  }
  return isNaN(v)?'':v.toFixed(2);
 }
-// Use word positions: ignore everything left of the Vendor/Store labels (logo, (R) mark, company info)
-// and drop low-confidence junk words. Returns null if the OCR data has no word positions.
+// lines of words with positions, whichever shape the scanner library returns them in
+function getLines(data){
+ if(!data)return null;
+ const ok=a=>Array.isArray(a)&&a.length&&a.some(l=>l&&l.words&&l.words.length&&l.words[0].bbox);
+ if(ok(data.lines))return data.lines;
+ if(Array.isArray(data.blocks)){const o=[];data.blocks.forEach(b=>(b.paragraphs||[]).forEach(p=>(p.lines||[]).forEach(l=>o.push(l))));if(ok(o))return o}
+ if(typeof data.tsv==='string'&&data.tsv){
+  const g={};
+  data.tsv.split('\n').forEach(r=>{const c=r.split('\t');if(c.length<12||c[0]!=='5')return;const x=+c[6],y=+c[7],w=+c[8],h=+c[9],k=c[2]+'-'+c[3]+'-'+c[4];
+   (g[k]=g[k]||{words:[]}).words.push({text:c.slice(11).join('\t'),confidence:+c[10],bbox:{x0:x,y0:y,x1:x+w,y1:y+h}})});
+  const o=Object.values(g);if(ok(o))return o;
+ }
+ if(Array.isArray(data.words)&&data.words.length&&data.words[0].bbox){
+  const ws=data.words.slice().sort((a,b)=>a.bbox.y0-b.bbox.y0),o=[];
+  for(const w of ws){const h=w.bbox.y1-w.bbox.y0,yc=(w.bbox.y0+w.bbox.y1)/2,l=o[o.length-1];
+   if(l&&Math.abs(yc-l.yc)<=Math.max(8,h*.6)){l.words.push(w);l.yc=(l.yc*(l.words.length-1)+yc)/l.words.length}else o.push({words:[w],yc})}
+  o.forEach(l=>l.words.sort((a,b)=>a.bbox.x0-b.bbox.x0));return o;
+ }
+ return null;
+}
+const lineWords=data=>{const L=getLines(data)||[];return L.flatMap(l=>l.words||[])};
+// Use word positions: ignore everything left of the Vendor/Store labels (logo, (R) mark, company info) and drop junk words.
 function regionText(data){
- const lines=data&&Array.isArray(data.lines)?data.lines:null;
- if(!lines||!lines.length)return null;
+ const lines=getLines(data);if(!lines)return null;
  let W=1,lx=Infinity;
  lines.forEach(l=>(l.words||[]).forEach(w=>{if(!w.bbox)return;W=Math.max(W,w.bbox.x1);if(/^(vendor|store)\W*$/i.test(w.text))lx=Math.min(lx,w.bbox.x0)}));
  if(!isFinite(lx))return null;
  const xmin=lx-0.07*W;
- return lines.map(l=>(l.words||[]).filter(w=>w.bbox&&w.bbox.x0>=xmin&&(/\d/.test(w.text)||w.confidence>=55)).map(w=>w.text).join(' ')).filter(Boolean).join('\n');
+ return lines.map(l=>(l.words||[]).filter(w=>w.bbox&&w.bbox.x0>=xmin&&(/\d/.test(w.text)||w.confidence>=55||(w.text.length>=5&&w.confidence>=25))).map(w=>w.text).join(' ')).filter(Boolean).join('\n');
 }
+const scanInfo={pos:false};
 function parseTicket(t,data){
- t=t.replace(/[\u2018\u2019]/g,"'");
+ t=t.replace(/[\u2018\u2019\u201B\u2032\u00B4`]/g,"'").replace(/'{2,}/g,"'");
  const fm=parseForm(t);if(fm)return fm;
  const r={};
  const sm=t.match(/store\s*(?:#|no\.?|number)[ \t]*[:.#_ -]*(\d{1,6})\b(?!\s+[A-Za-z])/i);if(sm)r.store=sm[1];
@@ -397,14 +440,15 @@ function parseTicket(t,data){
  const price=findPrice(clean(t),t);if(price)r.price=price;
 
  // mark every "Vendor Number"/"Store Number" label (even a clipped "re Number") so text merged onto its line is kept
- const base=regionText(data)||t;
+ const reg=regionText(data);scanInfo.pos=!!reg;
+ const base=reg||t;
  const T=base.replace(/(?:\b[A-Za-z]{1,6}\s+)?number[ \t]*[:;.#]?[ \t]*(?:\d{1,6}\b(?!\s+[A-Za-z]))?/gi,'\n\u00a7\n');
  const L=clean(T);
 
  const stop=l=>/office|home\s*:|cell\s*:|amount due|\(\d{3}\)\s*\d{3}|must be checked|paid cash|credit card/i.test(l);
- const junk=l=>l==='\u00a7'||!/[A-Za-z0-9]{2}/.test(l)||/^(invoice|date)\b/i.test(l)||/^(store|vendor)\s*(nu\w*|no\b|#|:|$)/i.test(l)||/^nu(m\w*)?[:;.]?$/i.test(l);
+ const junk=l=>l==='\u00a7'||!/[A-Za-z0-9]{2}/.test(l)||/^(invoice|date)\b/i.test(l)||/^(store|vendor)\s*(nu\w*|no\b|#|:|$)/i.test(l)||/^nu(m\w*)?[:;.]?$/i.test(l)||/^[a-z]{1,2}[.:]?$/.test(l);
  const street=isStreet;
- // a street line with 1-2 short junk tokens in front ("e 1704 West Bay Drive")
+ // a street line with junk tokens in front ("iw: 1001 West Bay Drive", "WIND re) Ww 2436 State Road 580")
  const unjunk=(l,long)=>{const m=l.match(long?/^((?:\S+\s+){1,3})((?=\S*\d)[0-9OoIlSZB]{1,6}\s+[A-Za-z]{2}.*)$/:/^((?:\S{1,3}\s+){1,2})((?=\S*\d)[0-9OoIlSZB]{1,6}\s+[A-Za-z]{2}.*)$/);return m&&!/\d/.test(m[1])?m[2]:l};
  let bi=-1;L.forEach((l,i)=>{if(l==='\u00a7')bi=i});
  let block=[];
@@ -415,38 +459,39 @@ function parseTicket(t,data){
  block=block.map((l,i)=>i>0?unjunk(l,true):l);
 
  const k=block.findIndex(street);
- let frags=k>0?block.slice(0,k):[block[0]];
+ let frags=k>0?block.slice(0,k):(k===0?[]:[block[0]]);
  const rest=k>=0?block.slice(k+1):block.slice(1);
  let streetLine=k>=0?block[k]:'';
  if(streetLine)streetLine=tidyStreet(streetLine);
- const city=cityFrom(rest);
- const cityOk=/[A-Za-z]{3}/.test(city)?city:'';
- const addr=[streetLine,cityOk].filter(Boolean).join(', ');
- if(addr)r.addr=addr;
+ const cityA=cityFrom(rest);
 
  // name: the piece that ends with " - Location" belongs at the end (tilted photos scramble the order)
  const dashEnd=/\s[-\u2013\u2014~=]+\s*\S+(?:\s+\S+){0,2}\s*$/;
- const ci=frags.findIndex(f=>dashEnd.test(f)||(cityOk&&f.toLowerCase().includes(cityOk.toLowerCase())));
+ const ci=frags.findIndex(f=>dashEnd.test(f)||(cityA&&f.toLowerCase().includes(cityA.toLowerCase())));
  if(ci>=0&&ci<frags.length-1){const[c]=frags.splice(ci,1);frags.push(c)}
  const nameLine=frags.reduce((acc,f)=>acc?dropStub(acc,f)+' '+f:f,'');
  let parts=nameLine.split(/\s+[-\u2013\u2014~=]+\s*|\s*[-\u2013\u2014]+\s+/).map(cleanName).filter(Boolean);
+ let cityB='';
  if(parts.length>1){
-  // the text after the last dash is the store location: drop it (short, or it matches the address city)
   const last=parts[parts.length-1];
-  if(last.split(' ').length<=3||sameLoc(last,cityOk))parts.pop();
-  parts=parts.filter(x=>!sameLoc(x,cityOk));
+  if(last.split(' ').length<=3){cityB=cityOf(last)||'';parts.pop()}   // text after the last dash is the store's town
+  parts=parts.filter(x=>!sameLoc(x,cityA));
  }
+ const city=pickCity(cityA,cityB);
  let name=parts.join(' - ');
- if(cityOk&&parts.length===1){                       // no dash: strip trailing city words that repeat the address (even twice)
+ if(city&&parts.length===1){                          // no dash: strip a trailing city that repeats the address (even twice)
   for(let again=true;again;){again=false;const w=name.split(' ');
-   for(let n=Math.min(4,w.length-1);n>=1;n--){if(sameLoc(w.slice(-n).join(' '),cityOk)){name=w.slice(0,-n).join(' ');again=true;break}}}
+   for(let n=Math.min(4,w.length-1);n>=1;n--){if(sameLoc(w.slice(-n).join(' '),city)){name=w.slice(0,-n).join(' ');again=true;break}}}
  }
  name=cleanName(name);
  if(name)r.name=name;
+ const addr=[streetLine,city].filter(Boolean).join(', ');
+ if(addr)r.addr=addr;
  return r;
 }
 let worker=null;
-const ocr=img=>worker?worker.recognize(img):Tesseract.recognize(img,'eng');
+const OUT={text:true,blocks:true,tsv:true};
+const ocr=img=>worker?worker.recognize(img,{},OUT):Tesseract.recognize(img,'eng');
 function rot(c,deg){
  if(!deg)return c;
  const o=document.createElement('canvas'),q=deg%180!==0;o.width=q?c.height:c.width;o.height=q?c.width:c.height;
@@ -458,7 +503,7 @@ async function orient(c){
  if(!(c&&c.width&&c.getContext))return c;
  let best=0,bs=-1;
  for(const deg of [0,90,270,180]){
-  const r=await ocr(small(rot(c,deg),1400)),ws=r.data.words||[];
+  const r=await ocr(small(rot(c,deg),1400)),ws=lineWords(r.data);
   const sc=ws.length?ws.filter(w=>w.confidence>60&&/[A-Za-z]{3}/.test(w.text)&&w.bbox&&(w.bbox.x1-w.bbox.x0)>=1.2*(w.bbox.y1-w.bbox.y0)).length:Math.round((r.data.confidence||0)/10);
   if(sc>bs){bs=sc;best=deg}
   if(deg===0&&sc>=30)break;
@@ -471,14 +516,14 @@ $('files').onchange=async e=>{
  setStatus('Loading scanner…');
  try{await loadOCR()}catch(_){setStatus('Could not load the scanner. Check your internet connection. '+fs.length+' blank job(s) were added so you can fill them in by hand.',true);return}
  try{worker=await Tesseract.createWorker('eng')}catch(_){worker=null}
- let bad=0;
+ let bad=0,noPos=0;const bd=$('batchDate').value;
  for(let i=0;i<fs.length;i++){
   setStatus('Reading photo '+(i+1)+' of '+fs.length+'…');
-  try{const res=await ocr(await orient(await shrink(fs[i])));const r=parseTicket(res.data.text,res.data);Object.assign(made[i],r);made[i].na={name:!r.name,addr:!r.addr,price:!r.price,date:!r.date};const mt=bestMatch(made[i]);made[i].sg=mt?mt.id:null}catch(_){bad++}
+  try{const res=await ocr(await orient(await shrink(fs[i])));const r=parseTicket(res.data.text,res.data);Object.assign(made[i],r);if(!scanInfo.pos)noPos++;if(!made[i].date&&validIso(bd))made[i].date=bd;made[i].scanned=true;made[i].na={name:!r.name,addr:!r.addr,price:!r.price,date:!made[i].date};const mt=bestMatch(made[i]);made[i].sg=mt?mt.id:null}catch(_){bad++}
   render();
  }
  if(worker){try{await worker.terminate()}catch(_){}worker=null}
- setStatus('Done. Check every orange job before trusting the totals.'+(bad?' '+bad+' photo(s) could not be read; fill those in by hand.':''),bad>0);
+ setStatus('Done. Check every orange job before trusting the totals.'+(bad?' '+bad+' photo(s) could not be read; fill those in by hand.':'')+(noPos?' ('+noPos+' read as plain text only, so results may be less accurate.)':''),bad>0);
 };
 
 /* ---------- Export / import ---------- */
@@ -490,7 +535,7 @@ function build(){
    const l=jobs.filter(j=>j.w===w&&j.d===i).sort((a,b)=>a.date.localeCompare(b.date));
    L.push(d.toUpperCase());
    if(!l.length)L.push('No jobs');
-   l.forEach(j=>{L.push('',(j.name||'UNNAMED').toUpperCase(),'Date: '+(validIso(j.date)?mdy(j.date):'N/A'),'Address: '+(j.addr||'N/A'),...(j.store?['Store #: '+j.store]:[]),'Job price: '+priceTxt(j),'Commission pay: '+money(comm(j)))});
+   l.forEach(j=>{L.push('',(j.name||'UNNAMED').toUpperCase(),'Date: '+(validIso(j.date)?mdy(j.date):'N/A'),'Address: '+(j.addr||'N/A'),...(j.store?['Store #: '+j.store]:[]),'Job price: '+priceLine(j),'Commission pay: '+money(comm(j)))});
    L.push('',d+' total: '+money(sum(l)),'');
   });
   L.push('Week '+w+' total: '+money(sum(jobs.filter(j=>j.w===w))),'','');
@@ -545,7 +590,7 @@ function reportHTML(){
   DAYS.forEach((d,i)=>{
    const l=jobs.filter(j=>j.w===w&&j.d===i).sort((a,b)=>a.date.localeCompare(b.date));if(!l.length)return;
    h+='<div class="rdh"><span>'+d+'</span><span><small>Prices</small>'+money(sumP(l))+'<small>Pay</small>'+money(sum(l))+'</span></div>';
-   l.forEach(j=>{h+='<div class="rj"><div><div class="rname">'+esc((j.name||'UNNAMED').toUpperCase())+'</div><div class="radd">'+esc(j.addr||'N/A')+(j.store?' &middot; Store #'+esc(j.store):'')+'</div><div class="rdt">'+(validIso(j.date)?mdy(j.date):'N/A')+'</div></div><div class="rc"><small>Job price</small>'+money(full(j))+(cents(j.extra)?'<small style="text-transform:none">('+(cents(j.price)/100).toFixed(2)+' + '+(cents(j.extra)/100).toFixed(2)+')</small>':'')+'</div><div class="rc pay"><small>Your pay</small>'+money(comm(j))+'</div></div>'});
+   l.forEach(j=>{h+='<div class="rj"><div><div class="rname">'+esc((j.name||'UNNAMED').toUpperCase())+'</div><div class="radd">'+esc(j.addr||'N/A')+(j.store?' &middot; Store #'+esc(j.store):'')+'</div><div class="rdt">'+(validIso(j.date)?mdy(j.date):'N/A')+'</div></div><div class="rc"><small>Job price</small>'+(!String(j.price||'').trim()&&!cents(j.extra)?'N/A':money(full(j)))+(cents(j.extra)?'<small style="text-transform:none">('+(cents(j.price)/100).toFixed(2)+' + '+(cents(j.extra)/100).toFixed(2)+')</small>':'')+'</div><div class="rc pay"><small>Your pay</small>'+money(comm(j))+'</div></div>'});
   });
   h+='</section>';
  }
@@ -636,8 +681,8 @@ const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s
 function sim(a,b){
  a=norm(a);b=norm(b);if(!a||!b)return 0;
  const l=1-lev(a,b)/Math.max(a.length,b.length);
- const ta=new Set(a.split(' ')),tb=new Set(b.split(' '));let c=0;ta.forEach(x=>{if(tb.has(x))c++});
- return Math.max(l,2*c/(ta.size+tb.size));
+ const ta=new Set(a.split(' ').filter(x=>x.length>1)),tb=new Set(b.split(' ').filter(x=>x.length>1));let c=0;ta.forEach(x=>{if(tb.has(x))c++});
+ return Math.max(l,ta.size&&tb.size?2*c/(ta.size+tb.size):0);
 }
 function cleanBank(a){
  return Array.isArray(a)?a.filter(x=>x&&typeof x==='object'&&String(x.name||'').trim()&&String(x.addr||'').trim())
@@ -646,26 +691,30 @@ function cleanBank(a){
 function getBank(){const st=store();if(!st)return[];try{return cleanBank(JSON.parse(st.getItem(BANK)||'[]'))}catch(_){return[]}}
 function putBank(a){try{store().setItem(BANK,JSON.stringify(a));return true}catch(_){return false}}
 const cityOfAddr=a=>{const p=String(a||'').split(',');return p.length>1?norm(p[p.length-1]):''};
+const streetOf=a=>String(a||'').split(',')[0];
+const inBank=j=>getBank().some(x=>norm(x.name)===norm(j.name)&&norm(x.addr)===norm(j.addr));
 function bestMatch(j){
- let best=null,bs=0;
  if(!norm(j.name)&&!norm(j.addr))return null;
- const sj=norm(j.store);
+ const sj=norm(j.store),cands=[],weak=!/\d/.test(String(j.addr||''));      // weak = no street number was read at all
  for(const e of getBank()){
   const se=norm(e.store);
   if(sj&&se&&sj!==se)continue;                                               // different store number = different location
   if(norm(e.name)===norm(j.name)&&norm(e.addr)===norm(j.addr))return null;   // already exactly a saved job
-  const same=sj&&se&&sj===se,ns=sim(j.name,e.name),as=sim(j.addr,e.addr);
-  const cj=cityOfAddr(j.addr),ce=cityOfAddr(e.addr);
-  if(cj&&ce&&sim(cj,ce)<.8)continue;                                         // different town = different location
-  if(!same&&norm(j.name)&&norm(j.addr)&&(ns<.4||as<.4))continue;             // a different business or location
-  if(!(ns>=.75||as>=.8||(ns>=.6&&as>=.6)||(same&&(ns>=.5||as>=.5))))continue;
-  const sc=Math.max(ns,as)+(ns>=.6&&as>=.6?.2:0)+(same?.3:0);
-  if(sc>bs){bs=sc;best=e}
+  const same=sj&&se&&sj===se,ns=sim(j.name,e.name),as=sim(j.addr,e.addr),ss=sim(streetOf(j.addr),streetOf(e.addr));
+  const cj=cityOfAddr(j.addr),ce=cityOfAddr(e.addr),both=/\d/.test(j.addr||'')&&/\d/.test(e.addr||'');
+  if(!same&&both&&ss<.6)continue;                                            // clearly a different street = a different location
+  if(cj&&ce&&sim(cj,ce)<.8&&ss<.85)continue;                                 // different town (unless the street matches: the town is just misread)
+  if(!same&&norm(j.name)&&norm(j.addr)&&!weak&&((ns<.4&&ss<.95)||(as<.4&&ss<.85)))continue;   // a different name needs a near-identical street to count
+  if(!(ns>=.75||as>=.8||ss>=.9||(ns>=.6&&as>=.6)||(same&&(ns>=.5||as>=.5))))continue;
+  cands.push({e,sc:Math.max(ns,as,ss)+(ns>=.6&&as>=.6?.2:0)+(same?.3:0)});
  }
- return best;
+ if(!cands.length)return null;
+ cands.sort((x,y)=>y.sc-x.sc);
+ if(weak&&cands.filter(c=>c.sc>=cands[0].sc-.05).length>1)return null;       // several saved places fit and there is no street to tell them apart
+ return cands[0].e;
 }
 function sgHTML(j){
- if(!j.sg)return'';const b=getBank().find(x=>x.id===j.sg);if(!b)return'';
+ if(!j.sg)return j.offerSave?'<div class="sugg">Save <b>'+esc(j.name)+'</b>, '+esc(j.addr)+' to the job bank so it is recognized next time?<div class="row"><button data-sgsave>Save to bank</button><button class="alt" data-sgskip>Not now</button></div></div>':'';const b=getBank().find(x=>x.id===j.sg);if(!b)return'';
  return '<div class="sugg">Did you mean <b>'+esc(b.name)+'</b>, '+esc(b.addr)+(b.store?' (Store #'+esc(b.store)+')':'')+'?'+(b.price?' <span class="note">(last price '+money(cents(b.price))+')</span>':'')+'<div class="row"><button data-sgyes>Yes, use it</button><button class="alt" data-sgno>No</button></div></div>';
 }
 function saveToBank(j){
